@@ -291,7 +291,7 @@ function renderHistory(){
  })}));
  drawHistory(series); drawYear(series);
 }
-const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#7c3aed'];
+const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
 function drawHistory(series){
  let {ctx,W,H}=setupCanvas(historyChart),L=52,R=42,T=48,B=58;ctx.font='12px Arial';ctx.textAlign='left';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
