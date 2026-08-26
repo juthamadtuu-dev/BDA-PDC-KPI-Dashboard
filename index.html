@@ -243,13 +243,17 @@ function resetSetup(){if(confirm('Reset Setup เฉพาะปี '+currentYea
 
 function keyDataRows(){
  let edits=loadEdits().filter(e=>months.includes(e.month));
+ let defs=kpiDefs();
  let baseRows=currentYear===2026?RAW_KEY_DATA.filter(r=>months.includes(r.month)):[];
- let map=new Map(baseRows.map(r=>[r.month+'|'+r.id+'|'+r.kpi,{...r,source:'Excel'}]));
+ const defForName=(name,key)=>defs.find(d=>(key&&d.key===key)||d.original===name||d.display===name);
+ const canonicalKey=(month,id,name,key)=>{let d=defForName(name,key);return month+'|'+id+'|'+(d?.key||key||name);};
+ let map=new Map();
+ baseRows.forEach(r=>{let d=defForName(r.kpi,r.kpiKey);map.set(canonicalKey(r.month,r.id,r.kpi,r.kpiKey),{...r,kpiKey:d?.key||r.kpiKey||'',kpi:d?.display||r.kpi,source:'Excel'});});
  edits.forEach(e=>{
-   let kd=kpiDefs().find(k=>k.key===e.kpiKey), kname=kd?.original||e.kpi||kd?.display||'';
-   let person=allPeople().find(x=>x.id===e.id), key=e.month+'|'+e.id+'|'+kname;
-   let old=map.get(key)||{month:e.month,id:e.id,name:person?.name||e.id,unit:person?.position||'',evaluator:person?.evaluator||'',kpi:kname,remark:''};
-   map.set(key,{...old,ttl:e.target,actual:e.actual,pct:e.pct,remark:e.remark||'',source:'Input Score'});
+   let kd=defForName(e.kpi,e.kpiKey), person=allPeople().find(x=>x.id===e.id);
+   let key=canonicalKey(e.month,e.id,e.kpi,e.kpiKey);
+   let old=map.get(key)||{month:e.month,id:e.id,name:person?.name||e.id,unit:person?.position||'',evaluator:person?.evaluator||'',remark:''};
+   map.set(key,{...old,kpiKey:kd?.key||e.kpiKey||'',kpi:kd?.display||e.kpi||'',ttl:e.target,actual:e.actual,pct:e.pct,remark:e.remark||'',source:'Input Score'});
  });
  return [...map.values()];
 }
