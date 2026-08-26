@@ -96,9 +96,9 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 <div id="inputPage">
 <div class="panel"><h3 id="titleInput">📝 Input Score</h3>
 <div class="formgrid">
-<label>Month<select id="iMonth" onchange="renderSaved()"></select></label>
-<label>Employee<select id="iEmployee" onchange="renderSaved()"></select></label>
-<label>KPI<select id="iKpi" onchange="renderSaved()"></select></label>
+<label>Month<select id="iMonth" onchange="inputFilterChanged()"></select></label>
+<label>Employee<select id="iEmployee" onchange="inputFilterChanged()"></select></label>
+<label>KPI<select id="iKpi" onchange="inputFilterChanged()"></select></label>
 <label>Target<input id="iTarget" type="number" step="any" min="0" placeholder="เช่น 20"></label>
 <label>Actual<input id="iActual" type="number" step="any" min="0" placeholder="เช่น 18"></label>
 <label>Calculation<select id="iCalc"><option value="higher">Actual ÷ Target × 100</option></select></label>
@@ -228,7 +228,7 @@ function bindAutoSort(table,rowSel,inputSel){table.querySelectorAll(inputSel).fo
 function sortSetupRows(table,rowSel,inputSel){let body=table.tBodies[0]||table,rows=[...table.querySelectorAll(rowSel)];rows.sort((a,b)=>(+a.querySelector(inputSel).value||999)-(+b.querySelector(inputSel).value||999));rows.forEach(r=>body.appendChild(r))}
 const KPI_DEFAULT_META=[{indicator:'%ข้อมูลบันทึกถูกต้อง',weight:30},{indicator:'%Error Rate ของข้อมูลต่ำกว่าเกณฑ์',weight:25},{indicator:'%เอกสารที่อัปเดตทันสมัย',weight:20},{indicator:'ระดับความพึงพอใจของหน่วยงานที่สนับสนุน',weight:15},{indicator:'%การใช้งานระบบอย่างถูกต้อง',weight:10}];
 function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
-function kpiCell(row,k,month,id){if(k.baseIndex!=null)return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
+function kpiCell(row,k,month,id){if(k.baseIndex!=null){if(month!=='TTL'){let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};}return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};}if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
 function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function refreshKpiControls(){let cur=iKpi.value;iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
@@ -273,8 +273,9 @@ function renderKeyData(){
  let rows=keyDataRows().filter(r=>{let def=kpiDefs().find(d=>d.original===r.kpi||d.display===r.kpi||d.key===r.kpiKey);return (m==='ALL'||r.month===m)&&(id==='ALL'||r.id===id)&&(k==='ALL'||def?.key===k)&&(!q||[r.id,r.name,r.unit,r.evaluator,r.kpi,r.remark].join(' ').toLowerCase().includes(q))});
  rows.sort((a,b)=>months.indexOf(a.month)-months.indexOf(b.month)||a.id.localeCompare(b.id)||a.kpi.localeCompare(b.kpi));
  kdSummary.textContent=''; kdSummary.style.display='none';
+ window.__keyDataVisibleRows=rows;
  keyDataTable.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPI</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th><th>Action</th></tr>'+
- rows.map((r,i)=>'<tr data-kd-row="'+i+'"><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(empCfg({id:r.id,name:r.name,position:r.unit}).display||r.name)+'</td><td class="name">'+esc(r.unit)+'</td><td class="name">'+esc(r.kpi)+'</td><td class="raw-num kdTarget">'+esc(r.ttl??'-')+'</td><td class="raw-num kdActual">'+esc(r.actual??'-')+'</td><td class="'+cls(r.pct)+' kdPct">'+fmt(r.pct)+'</td><td class="name kdRemark">'+esc(r.remark||'')+'</td><td class="kdAction"><button type="button" style="background:#1787f7;padding:7px 12px;white-space:nowrap" onclick="editKeyData(decodeURIComponent(\''+encodeURIComponent(r.month)+'\'),decodeURIComponent(\''+encodeURIComponent(r.id)+'\'),decodeURIComponent(\''+encodeURIComponent(r.kpi)+'\'))">✏️ Edit</button></td></tr>').join('');
+ rows.map((r,i)=>'<tr data-kd-row="'+i+'"><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(empCfg({id:r.id,name:r.name,position:r.unit}).display||r.name)+'</td><td class="name">'+esc(r.unit)+'</td><td class="name">'+esc(r.kpi)+'</td><td class="raw-num kdTarget">'+esc(r.ttl??'-')+'</td><td class="raw-num kdActual">'+esc(r.actual??'-')+'</td><td class="'+cls(r.pct)+' kdPct">'+fmt(r.pct)+'</td><td class="name kdRemark">'+esc(r.remark||'')+'</td><td class="kdAction"><button type="button" style="background:#1787f7;padding:7px 12px;white-space:nowrap" onclick="editKeyDataByIndex('+i+')">✏️ Edit</button></td></tr>').join('');
 }
 function startKeyDataInlineEdit(tr,r){
  if(keyDataTable.querySelector('.kdSaveBtn'))renderKeyData();
@@ -302,6 +303,22 @@ function saveKeyDataInlineEdit(tr,r){
 function editKeyData(month,id,kpiName){
  let r=keyDataRows().find(x=>x.month===month&&x.id===id&&x.kpi===kpiName);if(!r)return;
  let rows=[...keyDataTable.querySelectorAll('tr')].slice(1),tr=rows.find(x=>x.children[0]?.textContent===month&&x.children[1]?.textContent===id&&x.children[4]?.textContent===kpiName);if(tr)startKeyDataInlineEdit(tr,r);
+}
+function editKeyDataByIndex(i){
+ let r=(window.__keyDataVisibleRows||[])[i]; if(!r)return;
+ let tr=keyDataTable.querySelector('tr[data-kd-row="'+i+'"]');
+ if(tr)startKeyDataInlineEdit(tr,r);
+}
+function inputFilterChanged(){
+ // All three dropdowns remain independent filters. Never rebuild KPI options here.
+ renderSaved();
+ // If a specific Month + Employee + KPI is selected, preload the latest saved record for convenient editing.
+ if(iMonth.value!=='ALL'&&iEmployee.value!=='ALL'&&iKpi.value!=='ALL'){
+   let kd=kpiDefs().find(k=>k.key===iKpi.value);
+   let e=loadEdits().slice().reverse().find(x=>x.month===iMonth.value&&x.id===iEmployee.value&&(x.kpiKey===iKpi.value||(!x.kpiKey&&kd&&x.kpi===kd.display)));
+   if(e){iTarget.value=e.target??'';iActual.value=e.actual??'';iRemark.value=e.remark||'';calcPct()}
+   else {iTarget.value='';iActual.value='';iRemark.value='';calcPct()}
+ }
 }
 
 function renderHistory(){
