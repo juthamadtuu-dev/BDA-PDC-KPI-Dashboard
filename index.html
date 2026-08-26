@@ -388,14 +388,12 @@ function saveScore(){
    if(ix>=0)a[ix]=e;else a.push(e);
  }
  localStorage.setItem('bdaPdcEditsV2',JSON.stringify(a));
- // If this Month + Employee + KPI was deleted earlier in Key Data,
- // saving it again must restore it so Key Data can show the new score.
+ // If this Month + Employee + KPI was previously deleted in Key Data,
+ // saving it again from Input Score must restore it in Key Data.
  let deleted=loadKeyDataDeleted();
  let restoreKey=e.month+'|'+e.id+'|'+(kd?.key||e.kpiKey||e.kpi);
- if(deleted.includes(restoreKey)){
-   deleted=deleted.filter(x=>x!==restoreKey);
-   localStorage.setItem(keyDataDeletedStorageKey(),JSON.stringify(deleted));
- }
+ deleted=deleted.filter(x=>x!==restoreKey);
+ localStorage.setItem(keyDataDeletedStorageKey(),JSON.stringify(deleted));
  let wasEdit=editingScoreIndex!==null;
  editingScoreIndex=null;
  saveScoreBtn.innerHTML='💾 Save Score';
