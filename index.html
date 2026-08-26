@@ -27,6 +27,17 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 .keyfilters label{font-weight:700}.keyfilters select,.keyfilters input{width:100%;margin-top:6px}
 .keysummary{padding:0 20px 12px;color:#667085}.raw-num{text-align:right;font-variant-numeric:tabular-nums}
 @media(max-width:900px){.keyfilters{grid-template-columns:1fr 1fr}}
+
+/* Matrix Summary: improve readability and keep employee columns consistent */
+#matrix{width:max-content;min-width:100%;table-layout:fixed}
+#matrix th,#matrix td{vertical-align:middle;line-height:1.45;padding:12px 10px}
+#matrix th:nth-child(1),#matrix td:nth-child(1){width:70px;min-width:70px;max-width:70px}
+#matrix th:nth-child(2),#matrix td:nth-child(2){width:220px;min-width:220px;max-width:220px;text-align:left;white-space:normal;word-break:normal;overflow-wrap:anywhere}
+#matrix th:nth-child(3),#matrix td:nth-child(3){width:160px;min-width:160px;max-width:160px;text-align:left;white-space:normal;word-break:normal;overflow-wrap:anywhere}
+#matrix th:nth-child(4),#matrix td:nth-child(4){width:100px;min-width:100px;max-width:100px}
+#matrix th:nth-child(n+5),#matrix td:nth-child(n+5){width:105px;min-width:105px;max-width:105px}
+#matrix tr:first-child th:nth-child(n+5){white-space:normal;overflow-wrap:anywhere;line-height:1.35;padding:12px 8px}
+#matrix tr:not(:first-child) th:nth-child(2),#matrix tr:not(:first-child) th:nth-child(3){font-weight:700}
 </style></head>
 <body>
 <aside>
