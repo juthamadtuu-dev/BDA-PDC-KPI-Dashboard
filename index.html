@@ -255,8 +255,15 @@ function keyDataRows(){
    let old=map.get(key)||{month:e.month,id:e.id,name:person?.name||e.id,unit:person?.position||'',evaluator:person?.evaluator||'',remark:''};
    map.set(key,{...old,kpiKey:kd?.key||e.kpiKey||'',kpi:kd?.display||e.kpi||'',ttl:e.target,actual:e.actual,pct:e.pct,remark:e.remark||'',source:'Input Score'});
  });
- return [...map.values()];
+ let deleted=loadKeyDataDeleted();
+ return [...map.values()].filter(r=>!deleted.includes(keyDataDeleteKey(r)));
 }
+function keyDataDeleteKey(r){
+ let d=kpiDefs().find(x=>x.original===r.kpi||x.display===r.kpi||x.key===r.kpiKey);
+ return r.month+'|'+r.id+'|'+(d?.key||r.kpiKey||r.kpi);
+}
+function keyDataDeletedStorageKey(){return 'bdaPdcKeyDataDeleted_'+currentYear}
+function loadKeyDataDeleted(){try{return JSON.parse(localStorage.getItem(keyDataDeletedStorageKey())||'[]')}catch(e){return[]}}
 function initKeyDataFilters(){
  let keepMonth=kdMonth.value||'ALL',keepEmployee=kdEmployee.value||'ALL',keepKpi=kdKpi.value||'ALL';
  if(!kdMonth.options.length)kdMonth.innerHTML='<option value="ALL">ทุกเดือน</option>'+months.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');
@@ -275,7 +282,7 @@ function renderKeyData(){
  kdSummary.textContent=''; kdSummary.style.display='none';
  window.__keyDataVisibleRows=rows;
  keyDataTable.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPI</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th><th>Action</th></tr>'+
- rows.map((r,i)=>'<tr data-kd-row="'+i+'"><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(empCfg({id:r.id,name:r.name,position:r.unit}).display||r.name)+'</td><td class="name">'+esc(r.unit)+'</td><td class="name">'+esc(r.kpi)+'</td><td class="raw-num kdTarget">'+esc(r.ttl??'-')+'</td><td class="raw-num kdActual">'+esc(r.actual??'-')+'</td><td class="'+cls(r.pct)+' kdPct">'+fmt(r.pct)+'</td><td class="name kdRemark">'+esc(r.remark||'')+'</td><td class="kdAction"><button type="button" style="background:#1787f7;padding:7px 12px;white-space:nowrap" onclick="editKeyDataByIndex('+i+')">✏️ Edit</button></td></tr>').join('');
+ rows.map((r,i)=>'<tr data-kd-row="'+i+'"><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(empCfg({id:r.id,name:r.name,position:r.unit}).display||r.name)+'</td><td class="name">'+esc(r.unit)+'</td><td class="name">'+esc(r.kpi)+'</td><td class="raw-num kdTarget">'+esc(r.ttl??'-')+'</td><td class="raw-num kdActual">'+esc(r.actual??'-')+'</td><td class="'+cls(r.pct)+' kdPct">'+fmt(r.pct)+'</td><td class="name kdRemark">'+esc(r.remark||'')+'</td><td class="kdAction"><div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button type="button" style="background:#1787f7;padding:7px 12px;white-space:nowrap" onclick="editKeyDataByIndex('+i+')">✏️ Edit</button><button type="button" style="background:#d92d20;padding:7px 12px;white-space:nowrap" onclick="deleteKeyDataByIndex('+i+')">🗑 Delete</button></div></td></tr>').join('');
 }
 function startKeyDataInlineEdit(tr,r){
  if(keyDataTable.querySelector('.kdSaveBtn'))renderKeyData();
@@ -308,6 +315,18 @@ function editKeyDataByIndex(i){
  let r=(window.__keyDataVisibleRows||[])[i]; if(!r)return;
  let tr=keyDataTable.querySelector('tr[data-kd-row="'+i+'"]');
  if(tr)startKeyDataInlineEdit(tr,r);
+}
+function deleteKeyDataByIndex(i){
+ let r=(window.__keyDataVisibleRows||[])[i]; if(!r)return;
+ if(!confirm('ลบข้อมูลนี้หรือไม่?\n'+r.month+' • '+r.name+' • '+r.kpi))return;
+ let defs=kpiDefs(),kd=defs.find(k=>k.original===r.kpi||k.display===r.kpi||k.key===r.kpiKey),a=loadEdits();
+ a=a.filter(e=>!(e.month===r.month&&e.id===r.id&&((e.kpiKey&&kd&&e.kpiKey===kd.key)||e.kpi===r.kpi||e.kpi===kd?.display)));
+ localStorage.setItem('bdaPdcEditsV2',JSON.stringify(a));
+ let deleted=loadKeyDataDeleted(),key=keyDataDeleteKey(r); if(!deleted.includes(key))deleted.push(key);
+ localStorage.setItem(keyDataDeletedStorageKey(),JSON.stringify(deleted));
+ applyEdits();renderSaved();render();renderKeyData();
+ if(document.getElementById('historyPage')?.style.display!=='none')renderHistory();
+ if(document.getElementById('employeePage')?.style.display!=='none')renderEmployee();
 }
 function inputFilterChanged(){
  // All three dropdowns remain independent filters. Never rebuild KPI options here.
