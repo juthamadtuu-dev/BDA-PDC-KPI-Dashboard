@@ -452,8 +452,8 @@ function renderSaved(){
    }
    return true;
  });
- saved.innerHTML='<tr><th>Month</th><th>Employee</th><th>KPI</th><th>Target</th><th>Actual</th><th>%</th><th>Remark</th><th>Action</th></tr>'+
- a.reverse().map(({e,index})=>{let person=(D.data[e.month]||[]).find(x=>x.id===e.id);return '<tr><td>'+e.month+'</td><td class="name">'+esc(person?.name||e.id)+'</td><td>'+esc(e.kpi)+'</td><td>'+e.target+'</td><td>'+e.actual+'</td><td class="'+cls(e.pct)+'">'+fmt(e.pct)+'</td><td>'+esc(e.remark||'')+'</td><td><div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button type="button" onclick="editSavedScore('+index+')" style="background:#1787f7;padding:7px 12px;white-space:nowrap">✏️ Edit</button><button type="button" onclick="deleteSavedScore('+index+')" style="background:#d92d20;padding:7px 12px;white-space:nowrap">🗑 Delete</button></div></td></tr>'}).join('');
+ saved.innerHTML='<tr><th>Month</th><th>Employee</th><th>KPI</th><th>Target</th><th>Actual</th><th>%</th><th>Remark</th></tr>'+
+ a.reverse().map(({e,index})=>{let person=(D.data[e.month]||[]).find(x=>x.id===e.id);return '<tr><td>'+e.month+'</td><td class="name">'+esc(person?.name||e.id)+'</td><td>'+esc(e.kpi)+'</td><td>'+e.target+'</td><td>'+e.actual+'</td><td class="'+cls(e.pct)+'">'+fmt(e.pct)+'</td><td>'+esc(e.remark||'')+'</td></tr>'}).join('');
 }
 syncYearUI();
 month.innerHTML='<option value="TTL">TTL</option>'+months.map(m=>'<option value="'+m+'">'+m+'</option>').join(''); month.value='TTL';
