@@ -167,7 +167,7 @@ function render(){
  employees.textContent=p.length;
  let all=p.flatMap(x=>shownDefs.map(k=>kpiCell(x,k,m,x.id)?.pct)).filter(v=>v!=null);
  achieve.textContent=all.filter(v=>v>=95).length;follow.textContent=all.filter(v=>v<90).length;
- matrix.innerHTML='<tr><th>ลำดับ<br>(Item)</th><th>ตัวชี้วัด (KPI)</th><th>นิยาม</th><th>ความสำคัญ (%)</th>'+p.map(x=>'<th>'+esc(x.name.replace(/^น\.ส\.|^นาย|^นาง/g,''))+'</th>').join('')+'</tr>'+
+ matrix.innerHTML='<tr><th>ลำดับ<br>(Item)</th><th>ตัวชี้วัด (KPI)</th><th>นิยาม</th><th>ความสำคัญ (%)</th>'+p.map(x=>'<th>'+x.name.replace(/^น\.ส\.|^นาย|^นาง/g,'').trim().split(/\s+/).map(esc).join('<br>')+'</th>').join('')+'</tr>'+
  shownDefs.map((k,i)=>'<tr><th>'+esc(k.order||i+1)+'</th><th>'+esc(k.indicator||'')+'</th><th>'+esc(k.display)+'</th><th>'+esc(k.weight??0)+'%</th>'+p.map(x=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
  people.innerHTML='<tr><th>ID</th><th>ผู้ถูกประเมิน</th><th>ตำแหน่ง</th>'+shownDefs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+
  p.map(x=>'<tr><td>'+esc(x.id)+'</td><td class="name">'+esc(x.name)+'</td><td class="name">'+esc(x.position)+'</td>'+shownDefs.map(k=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
