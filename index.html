@@ -97,8 +97,8 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 <div class="panel"><h3 id="titleInput">📝 Input Score</h3>
 <div class="formgrid">
 <label>Month<select id="iMonth" onchange="renderSaved()"></select></label>
-<label>Employee<select id="iEmployee"></select></label>
-<label>KPI<select id="iKpi"></select></label>
+<label>Employee<select id="iEmployee" onchange="renderSaved()"></select></label>
+<label>KPI<select id="iKpi" onchange="renderSaved()"></select></label>
 <label>Target<input id="iTarget" type="number" step="any" min="0" placeholder="เช่น 20"></label>
 <label>Actual<input id="iActual" type="number" step="any" min="0" placeholder="เช่น 18"></label>
 <label>Calculation<select id="iCalc"><option value="higher">Actual ÷ Target × 100</option></select></label>
@@ -398,10 +398,23 @@ function deleteSavedScore(index){
  if(document.getElementById('employeePage')?.classList.contains('active')) renderEmployee();
 }
 function renderSaved(){
- // Show only the records for the Month selected in Input Score.
+ // Filter Saved / Updated Score by all selections above: Month + Employee + KPI.
  // Keep the original localStorage index so Edit/Delete still targets the correct record.
  let selectedMonth=iMonth.value;
- let a=loadEdits().map((e,index)=>({e,index})).filter(({e})=>months.includes(e.month)&&(!selectedMonth||e.month===selectedMonth));
+ let selectedEmployee=iEmployee.value;
+ let selectedKpi=iKpi.value;
+ let selectedKpiDef=kpiDefs().find(k=>k.key===selectedKpi);
+ let a=loadEdits().map((e,index)=>({e,index})).filter(({e})=>{
+   if(!months.includes(e.month)) return false;
+   if(selectedMonth && e.month!==selectedMonth) return false;
+   if(selectedEmployee && e.id!==selectedEmployee) return false;
+   if(selectedKpi){
+     let ek=e.kpiKey||e.kpi;
+     let match=ek===selectedKpi || (selectedKpiDef && e.kpi===selectedKpiDef.display);
+     if(!match) return false;
+   }
+   return true;
+ });
  saved.innerHTML='<tr><th>Month</th><th>Employee</th><th>KPI</th><th>Target</th><th>Actual</th><th>%</th><th>Remark</th><th>Action</th></tr>'+
  a.reverse().map(({e,index})=>{let person=(D.data[e.month]||[]).find(x=>x.id===e.id);return '<tr><td>'+e.month+'</td><td class="name">'+esc(person?.name||e.id)+'</td><td>'+esc(e.kpi)+'</td><td>'+e.target+'</td><td>'+e.actual+'</td><td class="'+cls(e.pct)+'">'+fmt(e.pct)+'</td><td>'+esc(e.remark||'')+'</td><td><div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button type="button" onclick="editSavedScore('+index+')" style="background:#1787f7;padding:7px 12px;white-space:nowrap">✏️ Edit</button><button type="button" onclick="deleteSavedScore('+index+')" style="background:#d92d20;padding:7px 12px;white-space:nowrap">🗑 Delete</button></div></td></tr>'}).join('');
 }
