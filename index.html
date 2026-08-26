@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>BDA-PDC KPI Dashboard</title>
+<title>L5 BDA-PDC KPI Dashboard</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f3f6fb;color:#344054}
 aside{position:fixed;inset:0 auto 0 0;width:245px;background:#202331;color:#fff;padding:18px 14px}
@@ -30,7 +30,7 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 </style></head>
 <body>
 <aside>
-<div class="brand">◉ BDA-PDC KPI</div>
+<div class="brand">◉ L5 BDA-PDC KPI</div>
 <div id="navList">
 <div class="nav active" id="navMatrix" data-menu="matrix" onclick="showMatrix()">▦ <span class="navLabel">Matrix Summary</span></div>
 <div class="nav" id="navHistory" data-menu="history" onclick="showHistory()">◷ <span class="navLabel">KPI History</span></div>
@@ -41,7 +41,7 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 </div>
 </aside>
 <main>
-<header><b>▰ BDA-PDC KPI Dashboard</b><span><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
+<header><b>▰ L5 BDA-PDC KPI Dashboard</b><span><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
 <div id="matrixPage">
 <div class="box" style="flex-wrap:wrap"><b>เดือน (Month)</b><select id="month" onchange="render()"></select><b>หน่วยงาน</b><select id="mUnit" onchange="fillMatrixEvaluators();render()"></select><b>ผู้ประเมิน</b><select id="mEvaluator" onchange="render()"></select></div>
 <div class="cards"><div><small>Employees</small><strong id="employees">0</strong></div><div><small>Achieve ≥ 95%</small><strong id="achieve">0</strong></div><div><small>Need Follow-up &lt; 90%</small><strong id="follow">0</strong></div></div>
