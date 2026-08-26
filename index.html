@@ -107,7 +107,7 @@ th{background:#f8fafc} .good{background:#c6efce;color:#176b2c;font-weight:700} .
 </div>
 <div class="actions"><button id="saveScoreBtn" onclick="saveScore()">💾 Save Score</button><button onclick="clearScore()" style="background:#667085">Clear</button></div>
 </div>
-<div class="panel"><h3>📋 Saved / Updated Score</h3><div class="scroll"><table id="saved"></table></div></div>
+<table id="saved" style="display:none"></table>
 </div>
 </main>
 <script>
@@ -388,6 +388,14 @@ function saveScore(){
    if(ix>=0)a[ix]=e;else a.push(e);
  }
  localStorage.setItem('bdaPdcEditsV2',JSON.stringify(a));
+ // If this Month + Employee + KPI was deleted earlier in Key Data,
+ // saving it again must restore it so Key Data can show the new score.
+ let deleted=loadKeyDataDeleted();
+ let restoreKey=e.month+'|'+e.id+'|'+(kd?.key||e.kpiKey||e.kpi);
+ if(deleted.includes(restoreKey)){
+   deleted=deleted.filter(x=>x!==restoreKey);
+   localStorage.setItem(keyDataDeletedStorageKey(),JSON.stringify(deleted));
+ }
  let wasEdit=editingScoreIndex!==null;
  editingScoreIndex=null;
  saveScoreBtn.innerHTML='💾 Save Score';
