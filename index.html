@@ -255,22 +255,8 @@ function keyDataRows(){
    let old=map.get(key)||{month:e.month,id:e.id,name:person?.name||e.id,unit:person?.position||'',evaluator:person?.evaluator||'',remark:''};
    map.set(key,{...old,kpiKey:kd?.key||e.kpiKey||'',kpi:kd?.display||e.kpi||'',ttl:e.target,actual:e.actual,pct:e.pct,remark:e.remark||'',source:'Input Score'});
  });
- // Safety sync: also read the live D dataset after applyEdits().
- // This guarantees newly saved Input Score records (e.g. AUG'26) appear in Key Data,
- // even when they did not exist in the original RAW_KEY_DATA source.
- months.forEach(month=>{
-   (D.data[month]||[]).forEach(person=>{
-     defs.forEach((d,i)=>{
-       let cell=person.kpis?.[i];
-       if(!cell || (cell.ttl==null && cell.actual==null && cell.pct==null)) return;
-       let key=canonicalKey(month,String(person.id),d.display,d.key);
-       let old=map.get(key)||{};
-       map.set(key,{...old,month,id:String(person.id),name:person.name||old.name||String(person.id),unit:person.position||old.unit||'',evaluator:person.evaluator||old.evaluator||'',kpiKey:d.key,kpi:d.display,ttl:cell.ttl,actual:cell.actual,pct:cell.pct,remark:old.remark||'',source:old.source||'Live Data'});
-     });
-   });
- });
  let deleted=loadKeyDataDeleted();
- return [...map.values()].filter(r=>!deleted.includes(keyDataDeleteKey(r)));
+ return [...map.values()].filter(r=>r.source==='Input Score'||!deleted.includes(keyDataDeleteKey(r)));
 }
 function keyDataDeleteKey(r){
  let d=kpiDefs().find(x=>x.original===r.kpi||x.display===r.kpi||x.key===r.kpiKey);
@@ -406,7 +392,7 @@ function saveScore(){
  // saving it again from Input Score must restore it in Key Data.
  let deleted=loadKeyDataDeleted();
  let restoreKey=e.month+'|'+e.id+'|'+(kd?.key||e.kpiKey||e.kpi);
- deleted=deleted.filter(x=>x!==restoreKey);
+ deleted=deleted.filter(x=>!([restoreKey,e.month+'|'+e.id+'|'+e.kpi,e.month+'|'+e.id+'|'+(kd?.display||e.kpi)].includes(x)));
  localStorage.setItem(keyDataDeletedStorageKey(),JSON.stringify(deleted));
  let wasEdit=editingScoreIndex!==null;
  editingScoreIndex=null;
