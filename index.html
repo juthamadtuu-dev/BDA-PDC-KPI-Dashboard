@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>L5 BDA-PDC KPI Dashboard</title>
+<title>L5 BDA-PDC KPIs Dashboard</title>
 <style>
 *{box-sizing:border-box} body{margin:0;font-family:Arial,Tahoma,sans-serif;background:#f3f6fb;color:#344054}
 aside{position:fixed;inset:0 auto 0 0;width:245px;background:#202331;color:#fff;padding:18px 14px}
@@ -99,10 +99,10 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 </style></head>
 <body>
 <aside>
-<div class="brand">◉ L5 BDA-PDC KPI</div>
+<div class="brand">◉ L5 BDA-PDC KPIs</div>
 <div id="navList">
 <div class="nav active" id="navMatrix" data-menu="matrix" onclick="showMatrix()">▦ <span class="navLabel">Matrix Summary</span></div>
-<div class="nav" id="navHistory" data-menu="history" onclick="showHistory()">◷ <span class="navLabel">KPI History</span></div>
+<div class="nav" id="navHistory" data-menu="history" onclick="showHistory()">◷ <span class="navLabel">KPIs History</span></div>
 <div class="nav" id="navEmployee" data-menu="employee" onclick="showEmployee()">▤ <span class="navLabel">Employee Detail</span></div>
 <div class="nav" id="navInput" data-menu="input" onclick="showInput()">📝 <span class="navLabel">Input Score</span></div>
 <div class="nav" id="navKeyData" data-menu="keydata" onclick="showKeyData()">🔑 <span class="navLabel">Key Data</span></div>
@@ -110,17 +110,17 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 </div>
 </aside>
 <main>
-<header><b>▰ L5 BDA-PDC KPI Dashboard</b><span><button id="pptBtn" type="button" onclick="generatePowerPoint()">📊 PPT Present</button><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
+<header><b>▰ L5 BDA-PDC KPIs Dashboard</b><span><button id="pptBtn" type="button" onclick="generatePowerPoint()">📊 PPT Present</button><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
 <div id="matrixPage">
 <div class="box" style="flex-wrap:wrap"><b>เดือน (Month)</b><select id="month" onchange="render()"></select><b>หน่วยงาน</b><select id="mUnit" onchange="fillMatrixEvaluators();render()"></select><b>ผู้ประเมิน</b><select id="mEvaluator" onchange="render()"></select></div>
 <div class="cards"><div><small>Employees</small><strong id="employees">0</strong></div><div id="achieveCard" class="statusCard" onclick="toggleMatrixStatus('achieve')" title="คลิกเพื่อดูรายการ Achieve"><small>Achieve ≥ 95%</small><strong id="achieve">0</strong></div><div id="followCard" class="statusCard" onclick="toggleMatrixStatus('follow')" title="คลิกเพื่อดูรายการที่ต้องติดตาม"><small>Need Follow-up &lt; 90%</small><strong id="follow">0</strong></div></div>
 <div class="panel"><h3 id="titleMatrix">📊 Matrix Summary</h3><div class="scroll"><table id="matrix"></table></div></div>
-<div class="panel" id="statusDetailPanel" style="display:none"><h3 id="statusDetailTitle">🔎 KPI Detail</h3><div class="scroll"><table id="statusDetail"></table></div></div>
-<div class="panel"><h3>👤 Employee KPI Summary</h3><div class="scroll"><table id="people"></table></div></div>
+<div class="panel" id="statusDetailPanel" style="display:none"><h3 id="statusDetailTitle">🔎 KPIs Detail</h3><div class="scroll"><table id="statusDetail"></table></div></div>
+<div class="panel"><h3>👤 Employee KPIs Summary</h3><div class="scroll"><table id="people"></table></div></div>
 </div>
 
 <div id="historyPage">
-<div class="panel"><h3 id="titleHistory">◷ KPI History</h3><div class="searchrow"><b>หน่วยงาน</b><select id="hUnit"></select><b>Employee</b><select id="hEmployee"></select><b>ผู้ประเมิน</b><select id="hEvaluator"></select></div><div class="historygrid"><div class="historybox"><h4>📈 รายเดือน JAN'26–DEC'26 (ทุก KPI)</h4><div class="chartwrap"><canvas id="historyChart"></canvas></div></div><div class="historybox"><h4>📊 รวมปี (แยก KPI)</h4><div class="chartwrap"><canvas id="yearChart"></canvas></div></div></div></div>
+<div class="panel"><h3 id="titleHistory">◷ KPIs History</h3><div class="searchrow"><b>หน่วยงาน</b><select id="hUnit"></select><b>Employee</b><select id="hEmployee"></select><b>ผู้ประเมิน</b><select id="hEvaluator"></select></div><div class="historygrid"><div class="historybox"><h4>📈 รายเดือน JAN'26–DEC'26 (ทุก KPIs)</h4><div class="chartwrap"><canvas id="historyChart"></canvas></div></div><div class="historybox"><h4>📊 รวมปี (แยก KPIs)</h4><div class="chartwrap"><canvas id="yearChart"></canvas></div></div></div></div>
 </div>
 
 <div id="employeePage">
@@ -133,7 +133,7 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <div class="keyfilters">
 <label>Month<select id="kdMonth"></select></label>
 <label>Employee<select id="kdEmployee"></select></label>
-<label>KPI<select id="kdKpi"></select></label>
+<label>KPIs<select id="kdKpi"></select></label>
 <label>Search<input id="kdSearch" placeholder="ค้นหา ID / ชื่อ / หน่วยงาน"></label>
 </div>
 <div class="keysummary" id="kdSummary"></div>
@@ -144,7 +144,7 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <div id="setupPage">
 <div class="panel"><h3 id="titleSetup">⚙ Setup</h3>
 <div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">🧭 Menu Setup <button type="button" onclick="addMenuRow()" style="padding:7px 12px;background:#1787f7">＋ Add Menu</button></h3><div class="scroll"><table id="menuSetup"></table></div></div>
-<div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">📊 KPI Setup <button type="button" onclick="addKpiRow()" style="padding:7px 12px;background:#1787f7">＋ Add KPI</button></h3><div class="scroll"><table id="kpiSetup"></table></div></div>
+<div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">📊 KPIs Setup <button type="button" onclick="addKpiRow()" style="padding:7px 12px;background:#1787f7">＋ Add KPIs</button></h3><div class="scroll"><table id="kpiSetup"></table></div></div>
 <div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">🏢 Unit Setup <button type="button" onclick="addUnitRow()" style="padding:7px 12px;background:#1787f7">＋ Add Unit</button></h3><div class="scroll"><table id="unitSetup"></table></div></div>
 <div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">👥 ผู้ประเมิน Setup <button type="button" onclick="addEvaluatorRow()" style="padding:7px 12px;background:#1787f7">＋ Add ผู้ประเมิน</button></h3><div class="scroll"><table id="evaluatorSetup"></table></div></div>
 <div class="panel" style="margin:0 20px 18px"><h3 style="background:#475467;display:flex;justify-content:space-between;align-items:center">👤 Employee Setup <button type="button" onclick="addEmployeeRow()" style="padding:7px 12px;background:#1787f7">＋ Add Employee</button></h3><div class="scroll"><table id="employeeSetup"></table></div></div>
@@ -158,7 +158,7 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <div class="formgrid">
 <label>Month<select id="iMonth" onchange="inputFilterChanged()"></select></label>
 <label>Employee<select id="iEmployee" onchange="inputFilterChanged()"></select></label>
-<label>KPI<select id="iKpi" onchange="inputFilterChanged()"></select></label>
+<label>KPIs<select id="iKpi" onchange="inputFilterChanged()"></select></label>
 <label>Target<input id="iTarget" type="number" step="any" min="0" placeholder="เช่น 20"></label>
 <label>Actual<input id="iActual" type="number" step="any" min="0" placeholder="เช่น 18"></label>
 <label>Calculation<select id="iCalc"><option value="higher">Actual ÷ Target × 100</option></select></label>
@@ -188,7 +188,7 @@ function seedYearData(target,y){
 function syncYearUI(){
   months=monthsForYear(currentYear); D.months=months.slice(); seedYearData(D,currentYear);
   if(typeof yearSelect!=='undefined'&&yearSelect){yearSelect.innerHTML=Array.from({length:15},(_,i)=>2026+i).map(y=>'<option value="'+y+'"'+(y===currentYear?' selected':'')+'>'+y+'</option>').join('')}
-  let hh=document.querySelector('#historyPage .historybox h4'); if(hh)hh.textContent='📈 รายเดือน '+months[0]+'–'+months[11]+' (ทุก KPI)';
+  let hh=document.querySelector('#historyPage .historybox h4'); if(hh)hh.textContent='📈 รายเดือน '+months[0]+'–'+months[11]+' (ทุก KPIs)';
 }
 function changeYear(y){
   currentYear=Number(y)||2026; localStorage.setItem('bdaPdcYear',String(currentYear)); applyEdits(); syncYearUI();
@@ -235,7 +235,7 @@ function renderStatusDetail(p,m,shownDefs){
  let rows=[];
  p.forEach(x=>shownDefs.forEach(k=>{let c=kpiCell(x,k,m,x.id),v=c?.pct;if(v==null)return; if((matrixStatusFilter==='achieve'&&v>=95)||(matrixStatusFilter==='follow'&&v<90))rows.push({x,k,v})}));
  title.textContent=matrixStatusFilter==='achieve'?'✅ Achieve ≥ 95% — รายการที่ผ่านเกณฑ์':'⚠ Need Follow-up < 90% — รายการที่ต้องติดตาม';
- table.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>ผู้ประเมิน</th><th>KPI</th><th>Score %</th></tr>'+rows.map(r=>'<tr><td>'+esc(m)+'</td><td>'+esc(r.x.id)+'</td><td class="name">'+esc(r.x.name)+'</td><td class="name">'+esc(effectiveUnit(r.x))+'</td><td class="name">'+esc(effectiveEvaluator(r.x))+'</td><td class="name">'+esc(r.k.display)+'</td><td class="'+cls(r.v)+'"><b>'+fmt(r.v)+'</b></td></tr>').join('');
+ table.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>ผู้ประเมิน</th><th>KPIs</th><th>Score %</th></tr>'+rows.map(r=>'<tr><td>'+esc(m)+'</td><td>'+esc(r.x.id)+'</td><td class="name">'+esc(r.x.name)+'</td><td class="name">'+esc(effectiveUnit(r.x))+'</td><td class="name">'+esc(effectiveEvaluator(r.x))+'</td><td class="name">'+esc(r.k.display)+'</td><td class="'+cls(r.v)+'"><b>'+fmt(r.v)+'</b></td></tr>').join('');
  if(!rows.length)table.innerHTML+='<tr><td colspan="7">ไม่พบรายการ</td></tr>';
  panel.style.display='block';
 }
@@ -245,7 +245,7 @@ function render(){
  employees.textContent=p.length;
  let all=p.flatMap(x=>shownDefs.map(k=>kpiCell(x,k,m,x.id)?.pct)).filter(v=>v!=null);
  achieve.textContent=all.filter(v=>v>=95).length;follow.textContent=all.filter(v=>v<90).length;
- matrix.innerHTML='<tr><th>ลำดับ<br>(Item)</th><th>ตัวชี้วัด (KPI)</th><th>นิยาม</th><th>ความสำคัญ (%)</th>'+p.map(x=>'<th>'+x.name.replace(/^น\.ส\.|^นาย|^นาง/g,'').trim().split(/\s+/).map(esc).join('<br>')+'</th>').join('')+'</tr>'+
+ matrix.innerHTML='<tr><th>ลำดับ<br>(Item)</th><th>ตัวชี้วัด (KPIs)</th><th>นิยาม</th><th>ความสำคัญ (%)</th>'+p.map(x=>'<th>'+x.name.replace(/^น\.ส\.|^นาย|^นาง/g,'').trim().split(/\s+/).map(esc).join('<br>')+'</th>').join('')+'</tr>'+
  shownDefs.map((k,i)=>'<tr><th>'+esc(k.order||i+1)+'</th><th>'+esc(k.indicator||'')+'</th><th>'+esc(k.display)+'</th><th>'+esc(k.weight??0)+'%</th>'+p.map(x=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
  people.innerHTML='<tr><th>ID</th><th>ผู้ถูกประเมิน</th><th>ตำแหน่ง</th>'+shownDefs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+
  p.map(x=>'<tr><td>'+esc(x.id)+'</td><td class="name">'+esc(x.name)+'</td><td class="name">'+esc(x.position)+'</td>'+shownDefs.map(k=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
@@ -281,7 +281,7 @@ function historyEvaluatorChanged(){fillHistoryEmployees()}
 function setupUnitOptions(selected){return historyUnits().map(u=>'<option value="'+esc(u)+'"'+(u===selected?' selected':'')+'>'+esc(unitCfg(u).display)+'</option>').join('')}
 const MENU_DEF=[
  {key:'matrix',original:'Matrix Summary',icon:'▦',nav:'navMatrix',title:'titleMatrix'},
- {key:'history',original:'KPI History',icon:'◷',nav:'navHistory',title:'titleHistory'},
+ {key:'history',original:'KPIs History',icon:'◷',nav:'navHistory',title:'titleHistory'},
  {key:'employee',original:'Employee Detail',icon:'▤',nav:'navEmployee',title:'titleEmployee'},
  {key:'input',original:'Input Score',icon:'📝',nav:'navInput',title:'titleInput'},
  {key:'keydata',original:'Key Data',icon:'🔑',nav:'navKeyData',title:'titleKeyData'},
@@ -308,9 +308,9 @@ function sortSetupRows(table,rowSel,inputSel){let body=table.tBodies[0]||table,r
 const KPI_DEFAULT_META=[{indicator:'%ข้อมูลบันทึกถูกต้อง',weight:30},{indicator:'%Error Rate ของข้อมูลต่ำกว่าเกณฑ์',weight:25},{indicator:'%เอกสารที่อัปเดตทันสมัย',weight:20},{indicator:'ระดับความพึงพอใจของหน่วยงานที่สนับสนุน',weight:15},{indicator:'%การใช้งานระบบอย่างถูกต้อง',weight:10}];
 function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
 function kpiCell(row,k,month,id){if(k.baseIndex!=null){if(month!=='TTL'){let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};}return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};}if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
-function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
-function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
-function refreshKpiControls(){let cur=iKpi.value;iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
+function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPIs</th><th>KPIs Name</th><th>ตัวชี้วัด (KPIs)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
+function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPIs" style="width:95%"></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPIs)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
+function refreshKpiControls(){let cur=iKpi.value;iKpi.innerHTML='<option value="ALL">ทุก KPIs</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
 function renderSetup(){renderMenuSetup();renderKpiSetup();let cfg=loadSetup(),baseUnits=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))],customUnits=cfg.customUnits||[],unitRows=[...baseUnits.filter(u=>!(cfg.deletedUnits||[]).includes(u)).map(u=>({key:u,original:u,name:cfg.units?.[u]?.display||u,order:cfg.units?.[u]?.order||999,custom:false})),...customUnits.map((u,i)=>({key:'__custom_unit_'+i,original:'',name:u.name||'',order:u.order||999,custom:true}))].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name,'th'));unitSetup.innerHTML='<tr><th>Order</th><th>Original Unit</th><th>Unit Name</th><th>Action</th></tr>'+unitRows.map((r,i)=>'<tr class="unitRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="suOrder" type="number" min="1" value="'+(r.order===999?i+1:r.order)+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="suName" value="'+esc(r.name)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let evals=evaluatorList();evaluatorSetup.innerHTML='<tr><th>Order</th><th>ชื่อผู้ประเมิน</th><th>Action</th></tr>'+evals.map((e,i)=>'<tr class="evalRow"><td><input class="svOrder" type="number" min="1" value="'+(i+1)+'" style="width:80px"></td><td><input class="svName" value="'+esc(e)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let people=allPeople().slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));employeeSetup.innerHTML='<tr><th>Order</th><th>ID</th><th>Name</th><th>Unit</th><th>ผู้ประเมิน</th><th>Action</th></tr>'+people.map((x,i)=>{let c=cfg.employees?.[x.id]||{},custom=!!x._custom;return '<tr class="empRow" data-custom="'+(custom?'1':'0')+'"><td><input class="seOrder" type="number" min="1" value="'+(c.order||i+1)+'" style="width:80px"></td><td><input class="seId" value="'+esc(x.id)+'" '+(custom?'':'readonly')+' style="width:130px"></td><td><input class="seName" value="'+esc(c.display||x.name)+'" style="width:95%"></td><td><select class="seUnit" style="min-width:220px">'+setupUnitOptions(c.unit||x.position)+'</select></td><td><select class="seEvaluator" style="min-width:220px">'+setupEvaluatorOptions(empCfg(x).evaluator)+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'employee\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>'}).join('');bindAutoSort(unitSetup,'.unitRow','.suOrder');bindAutoSort(evaluatorSetup,'.evalRow','.svOrder');bindAutoSort(employeeSetup,'.empRow','.seOrder')}
 function addUnitRow(){let n=document.querySelectorAll('.unitRow').length+1,tbody=unitSetup.tBodies[0]||unitSetup;let tr=document.createElement('tr');tr.className='unitRow';tr.dataset.key='__new_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="suOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="suName" placeholder="ชื่อหน่วยงาน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(unitSetup,'.unitRow','.suOrder')}
 function addEvaluatorRow(){let n=document.querySelectorAll('.evalRow').length+1,tbody=evaluatorSetup.tBodies[0]||evaluatorSetup;let tr=document.createElement('tr');tr.className='evalRow';tr.innerHTML='<td><input class="svOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td><input class="svName" placeholder="ชื่อผู้ประเมิน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(evaluatorSetup,'.evalRow','.svOrder')}
@@ -319,7 +319,7 @@ function deleteSetupRow(btn,type){let tr=btn.closest('tr');if(!tr)return;let lab
 function saveSetup(silent=false){let old=loadSetup(),cfg={menus:{},customMenus:[],kpis:{},customKpis:[],units:{},employees:{},customUnits:[],customEmployees:[],evaluators:[],deletedMenus:[],deletedKpis:[],deletedUnits:[],deletedEmployees:[]};document.querySelectorAll('.menuRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.smName').value.trim(),order=+tr.querySelector('.smOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customMenus.push({key,display:name,order});else cfg.menus[key]={display:name||MENU_DEF.find(x=>x.key===key).original,order}});document.querySelectorAll('.kpiRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.skName').value.trim(),indicator=tr.querySelector('.skIndicator')?.value.trim()||'',weight=Math.max(0,Math.min(100,+tr.querySelector('.skWeight')?.value||0)),order=+tr.querySelector('.skOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customKpis.push({key,display:name,indicator,weight,order});else cfg.kpis[key]={display:name,indicator,weight,order}});document.querySelectorAll('.unitRow').forEach((tr,i)=>{let name=tr.querySelector('.suName').value.trim(),order=+tr.querySelector('.suOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customUnits.push({name,order});else cfg.units[tr.dataset.key]={display:name,order}});document.querySelectorAll('.evalRow').forEach((tr,i)=>{let name=tr.querySelector('.svName').value.trim(),order=+tr.querySelector('.svOrder').value||i+1;if(name)cfg.evaluators.push({name,order})});cfg.evaluators.sort((a,b)=>a.order-b.order);let seen=new Set();document.querySelectorAll('.empRow').forEach((tr,i)=>{let id=tr.querySelector('.seId').value.trim(),name=tr.querySelector('.seName').value.trim(),unit=tr.querySelector('.seUnit').value,evaluator=tr.querySelector('.seEvaluator')?.value||'',order=+tr.querySelector('.seOrder').value||i+1;if(!id||seen.has(id))return;seen.add(id);cfg.employees[id]={display:name||id,unit,evaluator,order};if(tr.dataset.custom==='1')cfg.customEmployees.push({id,name:name||id,position:unit,evaluator})});let menuKeys=new Set([...document.querySelectorAll('.menuRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedMenus=MENU_DEF.filter(d=>!menuKeys.has(d.key)).map(d=>d.key);let kpiKeys=new Set([...document.querySelectorAll('.kpiRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedKpis=BASE.kpis.map((_,i)=>'base_'+i).filter(k=>!kpiKeys.has(k));let unitKeys=new Set([...document.querySelectorAll('.unitRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));let baseUnitKeys=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))];cfg.deletedUnits=baseUnitKeys.filter(u=>!unitKeys.has(u));let empIds=new Set([...document.querySelectorAll('.empRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.querySelector('.seId').value.trim()));let baseEmpIds=new Set();months.forEach(m=>(D.data[m]||[]).forEach(x=>baseEmpIds.add(String(x.id))));cfg.deletedEmployees=[...baseEmpIds].filter(id=>!empIds.has(id));localStorage.setItem(setupStorageKey(),JSON.stringify(cfg));localStorage.removeItem('bdaPdcSetupV1');applyMenuSetup();refreshMatrixUnits();refreshHistoryUnits();fillHistoryEvaluators();fillHistoryEmployees();refreshEmployeeControls();refreshKpiControls();renderSetup();render();renderHistory();renderEmployee();renderKeyData();renderSaved();if(!silent)alert('บันทึก Setup ปี '+currentYear+' แล้ว')}
 function refreshEmployeeControls(){let list=allPeople().sort((a,b)=>empCfg(a).order-empCfg(b).order);let keep=iEmployee.value;iEmployee.innerHTML='<option value="ALL">ทุกคน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(empCfg(x).display)+'</option>').join('');iEmployee.value=[...iEmployee.options].some(o=>o.value===keep)?keep:'ALL';employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(typeof employeeEvaluator!=='undefined'){let keep=employeeEvaluator.value||'ALL';employeeEvaluator.innerHTML='<option value="ALL">รวมผู้ประเมิน</option>'+evaluatorList().map(e=>'<option value="'+esc(e)+'">'+esc(e)+'</option>').join('');employeeEvaluator.value=[...employeeEvaluator.options].some(o=>o.value===keep)?keep:'ALL'}}
 function resetSetup(){if(confirm('Reset Setup เฉพาะปี '+currentYear+' กลับค่าเดิม?')){localStorage.removeItem(setupStorageKey());if(currentYear===2026)localStorage.removeItem('bdaPdcSetupV2');localStorage.removeItem('bdaPdcSetupV1');applyMenuSetup();applyEdits();syncYearUI();refreshHistoryUnits();fillHistoryEmployees();renderSetup();refreshEmployeeControls();refreshKpiControls();render();renderHistory();renderEmployee();renderKeyData();renderSaved()}}
-function dashboardStorageSnapshot(){let data={};for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);if(k&&k.startsWith('bdaPdc'))data[k]=localStorage.getItem(k)}return {app:'L5 BDA-PDC KPI Dashboard',format:'localStorage-backup-v1',exportedAt:new Date().toISOString(),items:data}}
+function dashboardStorageSnapshot(){let data={};for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);if(k&&k.startsWith('bdaPdc'))data[k]=localStorage.getItem(k)}return {app:'L5 BDA-PDC KPIs Dashboard',format:'localStorage-backup-v1',exportedAt:new Date().toISOString(),items:data}}
 function exportLocalStorageBackup(){try{let snap=dashboardStorageSnapshot(),blob=new Blob([JSON.stringify(snap,null,2)],{type:'application/json'}),a=document.createElement('a'),d=new Date(),stamp=d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0')+'_'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');a.href=URL.createObjectURL(blob);a.download='L5_BDA_PDC_KPI_localStorage_'+stamp+'.json';document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);if(typeof backupStatus!=='undefined')backupStatus.textContent='Export สำเร็จ — นำไฟล์ JSON ไปเก็บใน Google Drive ได้';}catch(e){alert('Export ไม่สำเร็จ: '+e.message)}}
 function importLocalStorageBackup(file){if(!file)return;let r=new FileReader();r.onload=()=>{try{let obj=JSON.parse(r.result),items=obj&&obj.items;if(!items||typeof items!=='object')throw new Error('รูปแบบไฟล์ Backup ไม่ถูกต้อง');let keys=Object.keys(items).filter(k=>k.startsWith('bdaPdc'));if(!keys.length)throw new Error('ไม่พบข้อมูล Dashboard ในไฟล์');if(!confirm('Restore localStorage จำนวน '+keys.length+' รายการ? ข้อมูล Dashboard ปัจจุบันจะถูกแทนที่ด้วย Backup นี้'))return;for(let i=localStorage.length-1;i>=0;i--){let k=localStorage.key(i);if(k&&k.startsWith('bdaPdc'))localStorage.removeItem(k)}keys.forEach(k=>localStorage.setItem(k,String(items[k])));if(typeof backupStatus!=='undefined')backupStatus.textContent='Restore สำเร็จ กำลังโหลด Dashboard ใหม่...';setTimeout(()=>location.reload(),500)}catch(e){alert('Import ไม่สำเร็จ: '+e.message)}};r.onerror=()=>alert('อ่านไฟล์ Backup ไม่สำเร็จ');r.readAsText(file)}
 
@@ -351,7 +351,7 @@ function initKeyDataFilters(){
  if(!kdMonth.options.length)kdMonth.innerHTML='<option value="ALL">ทุกเดือน</option>'+months.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');
  let people=allPeople().slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));
  kdEmployee.innerHTML='<option value="ALL">ทุกคน</option>'+people.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');
- kdKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');
+ kdKpi.innerHTML='<option value="ALL">ทุก KPIs</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');
  if([...kdMonth.options].some(o=>o.value===keepMonth))kdMonth.value=keepMonth;
  if([...kdEmployee.options].some(o=>o.value===keepEmployee))kdEmployee.value=keepEmployee;
  if([...kdKpi.options].some(o=>o.value===keepKpi))kdKpi.value=keepKpi;
@@ -363,7 +363,7 @@ function renderKeyData(){
  rows.sort((a,b)=>months.indexOf(a.month)-months.indexOf(b.month)||a.id.localeCompare(b.id)||a.kpi.localeCompare(b.kpi));
  kdSummary.textContent=''; kdSummary.style.display='none';
  window.__keyDataVisibleRows=rows;
- keyDataTable.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPI</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th><th>Action</th></tr>'+
+ keyDataTable.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPIs</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th><th>Action</th></tr>'+
  rows.map((r,i)=>'<tr data-kd-row="'+i+'"><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(empCfg({id:r.id,name:r.name,position:r.unit}).display||r.name)+'</td><td class="name">'+esc(r.unit)+'</td><td class="name">'+esc(r.kpi)+'</td><td class="raw-num kdTarget">'+esc(r.ttl??'-')+'</td><td class="raw-num kdActual">'+esc(r.actual??'-')+'</td><td class="'+cls(r.pct)+' kdPct">'+fmt(r.pct)+'</td><td class="name kdRemark">'+esc(r.remark||'')+'</td><td class="kdAction"><div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap"><button type="button" style="background:#1787f7;padding:7px 12px;white-space:nowrap" onclick="editKeyDataByIndex('+i+')">✏️ Edit</button><button type="button" style="background:#d92d20;padding:7px 12px;white-space:nowrap" onclick="deleteKeyDataByIndex('+i+')">🗑 Delete</button></div></td></tr>').join('');
 }
 function startKeyDataInlineEdit(tr,r){
@@ -411,9 +411,9 @@ function deleteKeyDataByIndex(i){
  if(document.getElementById('employeePage')?.style.display!=='none')renderEmployee();
 }
 function inputFilterChanged(){
- // All three dropdowns remain independent filters. Never rebuild KPI options here.
+ // All three dropdowns remain independent filters. Never rebuild KPIs options here.
  renderSaved();
- // If a specific Month + Employee + KPI is selected, preload the latest saved record for convenient editing.
+ // If a specific Month + Employee + KPIs is selected, preload the latest saved record for convenient editing.
  if(iMonth.value!=='ALL'&&iEmployee.value!=='ALL'&&iKpi.value!=='ALL'){
    let kd=kpiDefs().find(k=>k.key===iKpi.value);
    let e=loadEdits().slice().reverse().find(x=>x.month===iMonth.value&&x.id===iEmployee.value&&(x.kpiKey===iKpi.value||(!x.kpiKey&&kd&&x.kpi===kd.display)));
@@ -453,13 +453,13 @@ function drawHistory(series){
   ctx.fillText(label,p[0],Math.max(T+12,p[1]-offset));
   ctx.restore();
 })});
- if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPI data',W/2-45,H/2)}
+ if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPIs data',W/2-45,H/2)}
 }
 function drawYear(series){
  let {ctx,W,H}=setupCanvas(yearChart),L=55,R=20,T=35,B=115;ctx.font='12px Arial';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
  for(let y=0;y<=100;y+=20){let py=T+(100-y)/100*(H-T-B);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(W-R,py);ctx.stroke();ctx.fillStyle='#667085';ctx.fillText(y+'%',12,py+4)}
  let gap=(W-L-R)/series.length,bw=Math.min(55,gap*.55);series.forEach((s,i)=>{let vals=s.vals.filter(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,x=L+gap*i+gap/2;if(avg!=null){let y=T+(100-Math.max(0,Math.min(100,avg)))/100*(H-T-B);ctx.fillStyle=chartColors[i];ctx.fillRect(x-bw/2,y,bw,H-B-y);ctx.fillStyle='#344054';ctx.textAlign='center';ctx.font='bold 12px Arial';ctx.fillText((Math.round(avg*10)/10)+'%',x,y-7)}ctx.save();ctx.translate(x,H-B+10);ctx.rotate(-Math.PI/2);ctx.textAlign='right';ctx.fillStyle='#475467';ctx.font='11px Arial';ctx.fillText(s.name,0,0);ctx.restore()});ctx.textAlign='left';
- if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPI data',W/2-45,H/2)}
+ if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPIs data',W/2-45,H/2)}
 }
 function findEmployee(){let q=employeeSearch.value.trim().toLowerCase(),list=allPeople(),hit=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+hit.map(x=>'<option value="'+x.id+'">'+esc(x.id+' - '+x.name)+'</option>').join('');if(hit.length){employeeSelect.value=hit.length===list.length?'ALL':hit[0].id;renderEmployee()}else employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>'}
 function clearEmployeeSearch(){employeeSearch.value='';let list=allPeople().sort((a,b)=>empCfg(a).order-empCfg(b).order);employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(list.length){employeeSelect.value='ALL';renderEmployee()}else{employeeSelect.innerHTML='<option value="">ไม่มีพนักงาน</option>';employeeDetail.innerHTML='';}employeeSearch.focus();}
@@ -472,7 +472,7 @@ function calcPct(){
 }
 let editingScoreIndex=null;
 function saveScore(){
- if(iMonth.value==='ALL'||iEmployee.value==='ALL'||iKpi.value==='ALL'){alert('กรุณาเลือก Month, Employee และ KPI แบบรายรายการก่อนบันทึกคะแนน');return}
+ if(iMonth.value==='ALL'||iEmployee.value==='ALL'||iKpi.value==='ALL'){alert('กรุณาเลือก Month, Employee และ KPIs แบบรายรายการก่อนบันทึกคะแนน');return}
  let p=calcPct(); if(p==null){alert('กรุณากรอก Target และ Actual');return}
  let kd=kpiDefs().find(k=>k.key===iKpi.value),e={month:iMonth.value,id:iEmployee.value,kpiKey:iKpi.value,kpi:kd?.display||iKpi.options[iKpi.selectedIndex]?.text||iKpi.value,target:+iTarget.value,actual:+iActual.value,pct:p,remark:iRemark.value};
  let a=loadEdits();
@@ -483,7 +483,7 @@ function saveScore(){
    if(ix>=0)a[ix]=e;else a.push(e);
  }
  localStorage.setItem('bdaPdcEditsV2',JSON.stringify(a));
- // If this Month + Employee + KPI was previously deleted in Key Data,
+ // If this Month + Employee + KPIs was previously deleted in Key Data,
  // saving it again from Input Score must restore it in Key Data.
  let deleted=loadKeyDataDeleted();
  let restoreKey=e.month+'|'+e.id+'|'+(kd?.key||e.kpiKey||e.kpi);
@@ -540,7 +540,7 @@ function renderSaved(){
           (selectedEmployee==='ALL'||r.id===selectedEmployee) &&
           (selectedKpi==='ALL'||def?.key===selectedKpi);
  });
- saved.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPI</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th></tr>'+rows.map(r=>
+ saved.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>KPIs</th><th>TTL / Target</th><th>Actual</th><th>Result %</th><th>Remark</th></tr>'+rows.map(r=>
    '<tr><td>'+esc(r.month)+'</td><td>'+esc(r.id)+'</td><td class="name">'+esc(r.name||'')+'</td><td>'+esc(r.unit||'')+'</td><td>'+esc(r.kpi||'')+'</td><td>'+((r.ttl??'')==='?'?'':(r.ttl??''))+'</td><td>'+((r.actual??'')==='?'?'':(r.actual??''))+'</td><td class="'+cls(r.pct)+'">'+fmt(r.pct)+'</td><td>'+esc(r.remark||'')+'</td></tr>'
  ).join('');
 }
@@ -577,18 +577,18 @@ function pptSeries(){
 }
 function pptText(v){return v==='ALL'||v==='UNIT'?'รวมทั้งหมด':String(v||'รวมทั้งหมด')}
 async function generatePowerPoint(){
- let btn=document.getElementById('pptBtn');try{btn.disabled=true;btn.textContent='⏳ Generating...';await loadPptxGenJS();let pack=pptSeries(),defs=pack.series,pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='L5 BDA-PDC';pptx.subject='KPI Dashboard';pptx.title='L5 BDA-PDC KPI Dashboard '+currentYear;pptx.company='BDA-PDC';pptx.lang='th-TH';pptx.theme={headFontFace:'Tahoma',bodyFontFace:'Tahoma',lang:'th-TH'};
+ let btn=document.getElementById('pptBtn');try{btn.disabled=true;btn.textContent='⏳ Generating...';await loadPptxGenJS();let pack=pptSeries(),defs=pack.series,pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='L5 BDA-PDC';pptx.subject='KPIs Dashboard';pptx.title='L5 BDA-PDC KPIs Dashboard '+currentYear;pptx.company='BDA-PDC';pptx.lang='th-TH';pptx.theme={headFontFace:'Tahoma',bodyFontFace:'Tahoma',lang:'th-TH'};
  const navy='17446D',blue='1F5A91',light='EAF2FB',grid='D9E2EC',text='24364B',muted='667085',white='FFFFFF';
  function title(slide,t,sub=''){slide.background={color:'F7FAFD'};slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:13.333,h:.68,fill:{color:navy},line:{color:navy}});slide.addText(t,{x:.45,y:.15,w:8.7,h:.3,fontFace:'Tahoma',fontSize:22,bold:true,color:white,margin:0});if(sub)slide.addText(sub,{x:9.2,y:.19,w:3.65,h:.22,fontFace:'Tahoma',fontSize:10,color:'DCEBFA',align:'right',margin:0});}
  // Cover
- let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPI',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:4.65,y:3.2,w:4,h:.5,fontFace:'Tahoma',fontSize:22,bold:true,color:navy,align:'center',valign:'mid',fill:{color:white},line:{color:white},radius:.08});const _pptDataDate = new Date(); const _pptDataDateText = _pptDataDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); s.addText('Dashboard Data as of: '+_pptDataDateText,{x:.8,y:5.85,w:11.7,h:.3,fontFace:'Tahoma',fontSize:12,color:'DCEBFA',align:'center',margin:0});
+ let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:4.65,y:3.2,w:4,h:.5,fontFace:'Tahoma',fontSize:22,bold:true,color:navy,align:'center',valign:'mid',fill:{color:white},line:{color:white},radius:.08});const _pptDataDate = new Date(); const _pptDataDateText = _pptDataDate.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); s.addText('Dashboard Data as of: '+_pptDataDateText,{x:.8,y:5.85,w:11.7,h:.3,fontFace:'Tahoma',fontSize:12,color:'DCEBFA',align:'center',margin:0});
  // Re-render the same dashboard charts and export them as images.
  // This guarantees the PowerPoint uses exactly the same points, gaps and annual averages as the web dashboard.
  drawHistory(defs); drawYear(defs);
  const monthlyChartImage=historyChart.toDataURL('image/png');
  const annualChartImage=yearChart.toDataURL('image/png');
  // Annual summary — native PowerPoint executive scorecards (NOT a dashboard screenshot)
- s=pptx.addSlide();title(s,'Annual KPI Summary','Year '+currentYear);
+ s=pptx.addSlide();title(s,'Annual KPIs Summary','Year '+currentYear);
  s.addText('EXECUTIVE SCORECARD',{x:.48,y:.86,w:3.4,h:.28,fontFace:'Tahoma',fontSize:12,bold:true,color:blue,margin:0});
  const pptPeople=allPeople().filter(x=>(pack.unit==='ALL'||effectiveUnit(x)===pack.unit)&&(pack.id==='UNIT'||x.id===pack.id)&&(pack.evaluator==='ALL'||effectiveEvaluator(x).trim()===pack.evaluator));
  const pptUnitCount=new Set(pptPeople.map(x=>effectiveUnit(x)).filter(Boolean)).size;
@@ -599,13 +599,13 @@ async function generatePowerPoint(){
  const cardColors=['2F6BDE','23A55A','F59E0B','D92D20','7A7A7A'];
  const statusOf=a=>a.avg==null?['NO DATA','98A2B3','F2F4F7']:a.avg>=95?['ACHIEVE','16803A','ECFDF3']:a.avg>=90?['WATCH','B54708','FFFAEB']:['FOLLOW-UP','B42318','FEF3F2'];
  annual.forEach((a,i)=>{let x=.48+i*2.53,w=2.32,c=cardColors[i]||blue,st=statusOf(a);s.addShape(pptx.ShapeType.roundRect,{x,y:1.35,w,h:2.15,rectRadius:.08,fill:{color:'FFFFFF'},line:{color:'D9E2EC',pt:1}});s.addShape(pptx.ShapeType.rect,{x,y:1.35,w,h:.09,fill:{color:c},line:{color:c}});s.addText(a.name,{x:x+.16,y:1.65,w:w-.32,h:.42,fontFace:'Tahoma',fontSize:11,bold:true,color:text,align:'center',valign:'mid',margin:0,fit:'shrink'});s.addText(a.avg==null?'–':a.avg.toFixed(0)+'%',{x:x+.12,y:2.18,w:w-.24,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:a.avg==null?'98A2B3':c,align:'center',margin:0});s.addShape(pptx.ShapeType.roundRect,{x:x+.48,y:2.91,w:w-.96,h:.30,rectRadius:.05,fill:{color:st[2]},line:{color:st[2]}});s.addText(st[0],{x:x+.48,y:2.98,w:w-.96,h:.12,fontFace:'Tahoma',fontSize:8,bold:true,color:st[1],align:'center',margin:0});});
- s.addText('KPI Snapshot',{x:.55,y:3.92,w:3,h:.3,fontFace:'Tahoma',fontSize:15,bold:true,color:text,margin:0});
+ s.addText('KPIs Snapshot',{x:.55,y:3.92,w:3,h:.3,fontFace:'Tahoma',fontSize:15,bold:true,color:text,margin:0});
  s.addShape(pptx.ShapeType.line,{x:.55,y:4.28,w:12.15,h:0,line:{color:'D9E2EC',pt:1}});
  annual.forEach((a,i)=>{let y=4.52+i*.43,c=cardColors[i]||blue,latest=a.latest==null?'–':a.latest.toFixed(1)+'%',avg=a.avg==null?'–':a.avg.toFixed(1)+'%';s.addShape(pptx.ShapeType.ellipse,{x:.62,y:y+.02,w:.13,h:.13,fill:{color:c},line:{color:c}});s.addText(a.name,{x:.86,y,w:4.05,h:.22,fontFace:'Tahoma',fontSize:10.5,color:text,margin:0,fit:'shrink'});s.addText('Annual '+avg,{x:5.1,y,w:2.8,h:.22,fontFace:'Tahoma',fontSize:10.5,bold:true,color:text,margin:0});let st=statusOf(a);s.addText(st[0],{x:9.15,y,w:2.25,h:.22,fontFace:'Tahoma',fontSize:9,bold:true,color:st[1],align:'center',margin:0});});
  // Monthly trend — exact image of the dashboard chart; missing months remain blank (never converted to 0).
- s=pptx.addSlide();title(s,'Monthly KPI Trend','JAN–DEC '+currentYear);s.addImage({data:monthlyChartImage,x:.55,y:1.05,w:12.15,h:5.65});
- // KPI table
- s=pptx.addSlide();title(s,'KPI Performance Detail','Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach((d,i)=>{let vals=d.vals.filter(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',max==null?'-':max.toFixed(1)+'%',min==null?'-':min.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':avg>=90?'Watch':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});
+ s=pptx.addSlide();title(s,'Monthly KPIs Trend','JAN–DEC '+currentYear);s.addImage({data:monthlyChartImage,x:.55,y:1.05,w:12.15,h:5.65});
+ // KPIs table
+ s=pptx.addSlide();title(s,'KPIs Performance Detail','Year '+currentYear);let rows=[['KPIs','Annual Avg','Max','Min','Status']];defs.forEach((d,i)=>{let vals=d.vals.filter(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',max==null?'-':max.toFixed(1)+'%',min==null?'-':min.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':avg>=90?'Watch':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});
  await pptx.writeFile({fileName:'L5_BDA_PDC_KPI_Presentation_Executive_'+currentYear+'.pptx'});
  }catch(e){console.error(e);alert('Generate PowerPoint ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false;btn.textContent='📊 PPT Present'}}
 
