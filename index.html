@@ -89,6 +89,13 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 #setupPage .actions{margin:0 20px;background:transparent;padding:0}
 @media(max-width:900px){aside{width:190px}main{margin-left:190px}}
 
+
+.statusCard{cursor:pointer;transition:.15s ease;position:relative}
+.statusCard:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(23,74,126,.16)}
+.statusCard.selected{outline:3px solid #1787f7;outline-offset:-3px}
+#followCard.selected{outline-color:#e67e22}
+#statusDetail td,#statusDetail th{white-space:nowrap}
+#statusDetail td.name{white-space:normal;min-width:180px}
 </style></head>
 <body>
 <aside>
@@ -106,8 +113,9 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <header><b>▰ L5 BDA-PDC KPI Dashboard</b><span><button id="pptBtn" type="button" onclick="generatePowerPoint()">📊 PowerPoint</button><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
 <div id="matrixPage">
 <div class="box" style="flex-wrap:wrap"><b>เดือน (Month)</b><select id="month" onchange="render()"></select><b>หน่วยงาน</b><select id="mUnit" onchange="fillMatrixEvaluators();render()"></select><b>ผู้ประเมิน</b><select id="mEvaluator" onchange="render()"></select></div>
-<div class="cards"><div><small>Employees</small><strong id="employees">0</strong></div><div><small>Achieve ≥ 95%</small><strong id="achieve">0</strong></div><div><small>Need Follow-up &lt; 90%</small><strong id="follow">0</strong></div></div>
+<div class="cards"><div><small>Employees</small><strong id="employees">0</strong></div><div id="achieveCard" class="statusCard" onclick="toggleMatrixStatus('achieve')" title="คลิกเพื่อดูรายการ Achieve"><small>Achieve ≥ 95%</small><strong id="achieve">0</strong></div><div id="followCard" class="statusCard" onclick="toggleMatrixStatus('follow')" title="คลิกเพื่อดูรายการที่ต้องติดตาม"><small>Need Follow-up &lt; 90%</small><strong id="follow">0</strong></div></div>
 <div class="panel"><h3 id="titleMatrix">📊 Matrix Summary</h3><div class="scroll"><table id="matrix"></table></div></div>
+<div class="panel" id="statusDetailPanel" style="display:none"><h3 id="statusDetailTitle">🔎 KPI Detail</h3><div class="scroll"><table id="statusDetail"></table></div></div>
 <div class="panel"><h3>👤 Employee KPI Summary</h3><div class="scroll"><table id="people"></table></div></div>
 </div>
 
@@ -213,6 +221,24 @@ function ttlRows(){
  });
 }
 function getRows(m){return m==='TTL'?ttlRows():(D.data[m]||[])}
+let matrixStatusFilter=null;
+function toggleMatrixStatus(type){
+ matrixStatusFilter=(matrixStatusFilter===type?null:type);
+ render();
+ if(matrixStatusFilter){setTimeout(()=>document.getElementById('statusDetailPanel')?.scrollIntoView({behavior:'smooth',block:'start'}),50)}
+}
+function renderStatusDetail(p,m,shownDefs){
+ const panel=document.getElementById('statusDetailPanel'), table=document.getElementById('statusDetail'), title=document.getElementById('statusDetailTitle');
+ document.getElementById('achieveCard')?.classList.toggle('selected',matrixStatusFilter==='achieve');
+ document.getElementById('followCard')?.classList.toggle('selected',matrixStatusFilter==='follow');
+ if(!matrixStatusFilter){panel.style.display='none';table.innerHTML='';return}
+ let rows=[];
+ p.forEach(x=>shownDefs.forEach(k=>{let c=kpiCell(x,k,m,x.id),v=c?.pct;if(v==null)return; if((matrixStatusFilter==='achieve'&&v>=95)||(matrixStatusFilter==='follow'&&v<90))rows.push({x,k,v})}));
+ title.textContent=matrixStatusFilter==='achieve'?'✅ Achieve ≥ 95% — รายการที่ผ่านเกณฑ์':'⚠ Need Follow-up < 90% — รายการที่ต้องติดตาม';
+ table.innerHTML='<tr><th>Month</th><th>ID</th><th>Employee</th><th>Unit</th><th>ผู้ประเมิน</th><th>KPI</th><th>Score %</th></tr>'+rows.map(r=>'<tr><td>'+esc(m)+'</td><td>'+esc(r.x.id)+'</td><td class="name">'+esc(r.x.name)+'</td><td class="name">'+esc(effectiveUnit(r.x))+'</td><td class="name">'+esc(effectiveEvaluator(r.x))+'</td><td class="name">'+esc(r.k.display)+'</td><td class="'+cls(r.v)+'"><b>'+fmt(r.v)+'</b></td></tr>').join('');
+ if(!rows.length)table.innerHTML+='<tr><td colspan="7">ไม่พบรายการ</td></tr>';
+ panel.style.display='block';
+}
 function render(){
  applyEdits(); let m=document.getElementById('month').value,p=getRows(m); let mu=document.getElementById('mUnit')?.value||'ALL',me=document.getElementById('mEvaluator')?.value||'ALL'; p=p.filter(x=>(mu==='ALL'||effectiveUnit(x)===mu)&&(me==='ALL'||effectiveEvaluator(x).trim()===me));
  let defs=kpiDefs(), shownDefs=defs;
@@ -223,6 +249,7 @@ function render(){
  shownDefs.map((k,i)=>'<tr><th>'+esc(k.order||i+1)+'</th><th>'+esc(k.indicator||'')+'</th><th>'+esc(k.display)+'</th><th>'+esc(k.weight??0)+'%</th>'+p.map(x=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
  people.innerHTML='<tr><th>ID</th><th>ผู้ถูกประเมิน</th><th>ตำแหน่ง</th>'+shownDefs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+
  p.map(x=>'<tr><td>'+esc(x.id)+'</td><td class="name">'+esc(x.name)+'</td><td class="name">'+esc(x.position)+'</td>'+shownDefs.map(k=>{let c=kpiCell(x,k,m,x.id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>').join('');
+ renderStatusDetail(p,m,shownDefs);
 }
 function setPage(page,nav){[matrixPage,inputPage,historyPage,employeePage,setupPage,keyDataPage].forEach(x=>x.style.display='none');[navMatrix,navInput,navHistory,navEmployee,navSetup,navKeyData].forEach(x=>x.classList.remove('active'));page.style.display='block';nav.classList.add('active')}
 function showInput(){setPage(inputPage,navInput);renderSaved()}
