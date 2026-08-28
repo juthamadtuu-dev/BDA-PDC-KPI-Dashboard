@@ -54,6 +54,7 @@ main{margin-left:238px;padding:0 24px 32px;background:var(--page);min-height:100
 header{height:76px;margin:0 -24px 22px;padding:0 28px;background:var(--navy2);color:#fff;align-items:center;box-shadow:none;border-bottom:5px solid #6fb3ff}
 header>b{font-size:21px;letter-spacing:.15px} header span{display:flex;align-items:center} header span b{color:#dcecff}
 header #yearSelect{background:#fff!important;color:var(--navy)!important;border:0!important;border-radius:5px!important;font-weight:800!important;min-width:105px}
+#pptBtn{margin-right:14px;background:#fff;color:var(--navy);border:0;border-radius:5px;padding:10px 14px;font-weight:800;cursor:pointer;box-shadow:0 1px 2px #0002} #pptBtn:hover{background:#eaf3ff} #pptBtn:disabled{opacity:.65;cursor:wait}
 .box,.panel,.cards>div{border-radius:4px;box-shadow:none;border:1px solid var(--line)}
 .box{background:#dbeaff;padding:14px 18px;margin:0 0 16px;border-color:#bdd3e9;gap:10px}
 .box b{color:#173f69}
@@ -102,7 +103,7 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 </div>
 </aside>
 <main>
-<header><b>▰ L5 BDA-PDC KPI Dashboard</b><span><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
+<header><b>▰ L5 BDA-PDC KPI Dashboard</b><span><button id="pptBtn" type="button" onclick="generatePowerPoint()">📊 PowerPoint</button><b style="margin-right:8px">Year</b><select id="yearSelect" onchange="changeYear(this.value)" style="padding:8px 12px;border:1px solid #d0d5dd;border-radius:6px;background:white;font-size:16px"></select></span></header>
 <div id="matrixPage">
 <div class="box" style="flex-wrap:wrap"><b>เดือน (Month)</b><select id="month" onchange="render()"></select><b>หน่วยงาน</b><select id="mUnit" onchange="fillMatrixEvaluators();render()"></select><b>ผู้ประเมิน</b><select id="mEvaluator" onchange="render()"></select></div>
 <div class="cards"><div><small>Employees</small><strong id="employees">0</strong></div><div><small>Achieve ≥ 95%</small><strong id="achieve">0</strong></div><div><small>Need Follow-up &lt; 90%</small><strong id="follow">0</strong></div></div>
@@ -526,4 +527,33 @@ refreshMatrixUnits();refreshHistoryUnits();fillHistoryEvaluators();fillHistoryEm
 [kdMonth,kdEmployee,kdKpi].forEach(x=>x.addEventListener('change',renderKeyData));kdSearch.addEventListener('input',renderKeyData);
 [iTarget,iActual,iCalc].forEach(x=>x.addEventListener('input',calcPct)); month.addEventListener('change',render);
 render();
+
+// ===== PowerPoint export (ready-to-present) =====
+function loadPptxGenJS(){return new Promise((resolve,reject)=>{if(window.PptxGenJS)return resolve();let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';s.onload=resolve;s.onerror=()=>reject(new Error('ไม่สามารถโหลด PowerPoint library ได้ กรุณาตรวจสอบ Internet'));document.head.appendChild(s)})}
+function pptSeries(){
+ applyEdits(); let unit=(typeof hUnit!=='undefined'&&hUnit.value)||'ALL',id=(typeof hEmployee!=='undefined'&&hEmployee.value)||'UNIT',evaluator=(typeof hEvaluator!=='undefined'&&hEvaluator.value)||'ALL';
+ let ids=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
+ return {unit,id,evaluator,series:kpiDefs().map(k=>({name:k.display,vals:months.map(m=>{let v=(D.data[m]||[]).filter(r=>ids.includes(r.id)).map(r=>kpiCell(r,k,m,r.id)?.pct).filter(x=>x!=null&&Number.isFinite(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null})}))};
+}
+function pptText(v){return v==='ALL'||v==='UNIT'?'รวมทั้งหมด':String(v||'รวมทั้งหมด')}
+async function generatePowerPoint(){
+ let btn=document.getElementById('pptBtn');try{btn.disabled=true;btn.textContent='⏳ Generating...';await loadPptxGenJS();let pack=pptSeries(),defs=pack.series,pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='L5 BDA-PDC';pptx.subject='KPI Dashboard';pptx.title='L5 BDA-PDC KPI Dashboard '+currentYear;pptx.company='BDA-PDC';pptx.lang='th-TH';pptx.theme={headFontFace:'Tahoma',bodyFontFace:'Tahoma',lang:'th-TH'};
+ const navy='17446D',blue='1F5A91',light='EAF2FB',grid='D9E2EC',text='24364B',muted='667085',white='FFFFFF';
+ function title(slide,t,sub=''){slide.background={color:'F7FAFD'};slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:13.333,h:.68,fill:{color:navy},line:{color:navy}});slide.addText(t,{x:.45,y:.15,w:8.7,h:.3,fontFace:'Tahoma',fontSize:22,bold:true,color:white,margin:0});if(sub)slide.addText(sub,{x:9.2,y:.19,w:3.65,h:.22,fontFace:'Tahoma',fontSize:10,color:'DCEBFA',align:'right',margin:0});}
+ // Cover
+ let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPI',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:4.65,y:3.2,w:4,h:.5,fontFace:'Tahoma',fontSize:22,bold:true,color:navy,align:'center',valign:'mid',fill:{color:white},line:{color:white},radius:.08});s.addText('Generated from current dashboard data',{x:.8,y:5.85,w:11.7,h:.3,fontFace:'Tahoma',fontSize:12,color:'DCEBFA',align:'center',margin:0});
+ // Re-render the same dashboard charts and export them as images.
+ // This guarantees the PowerPoint uses exactly the same points, gaps and annual averages as the web dashboard.
+ drawHistory(defs); drawYear(defs);
+ const monthlyChartImage=historyChart.toDataURL('image/png');
+ const annualChartImage=yearChart.toDataURL('image/png');
+ // Annual summary
+ s=pptx.addSlide();title(s,'Annual KPI Summary','Year '+currentYear);s.addText('Filter: หน่วยงาน '+pptText(pack.unit)+'  |  Employee '+pptText(pack.id)+'  |  ผู้ประเมิน '+pptText(pack.evaluator),{x:.45,y:.85,w:12.3,h:.3,fontFace:'Tahoma',fontSize:12,color:muted,margin:0});s.addImage({data:annualChartImage,x:.55,y:1.30,w:12.1,h:5.25});
+ // Monthly trend — exact image of the dashboard chart; missing months remain blank (never converted to 0).
+ s=pptx.addSlide();title(s,'Monthly KPI Trend','JAN–DEC '+currentYear);s.addImage({data:monthlyChartImage,x:.55,y:1.05,w:12.15,h:5.65});
+ // KPI table
+ s=pptx.addSlide();title(s,'KPI Performance Detail','Year '+currentYear);let rows=[['KPI','Annual Avg','Latest Result','Status']];defs.forEach((d,i)=>{let vals=d.vals.filter(v=>v!=null),latest=[...d.vals].reverse().find(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',latest==null?'-':latest.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':avg>=90?'Watch':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[5.3,2,2,2.7]});s.addText('Source: L5 BDA-PDC KPI Dashboard • Generated '+new Date().toLocaleString('th-TH'),{x:.65,y:6.45,w:12,h:.25,fontFace:'Tahoma',fontSize:9,color:muted,margin:0});
+ await pptx.writeFile({fileName:'L5_BDA_PDC_KPI_Presentation_'+currentYear+'.pptx'});
+ }catch(e){console.error(e);alert('Generate PowerPoint ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false;btn.textContent='📊 PowerPoint'}}
+
 </script></body></html>
