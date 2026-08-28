@@ -459,8 +459,20 @@ function drawHistory(series){
   ctx.textBaseline='bottom';
   ctx.fillStyle=chartColors[si];
   let label=(Math.round(p[2]*10)/10).toString().replace(/\.0$/,'')+'%';
-  let offset=8+(si%2)*12;
-  ctx.fillText(label,p[0],Math.max(14,p[1]-offset));
+  // Avoid overlapping labels when KPI lines are close together at the same month.
+  const sameMonth = series.map((ss,sj)=>({sj,v:ss.vals[p[3]]})).filter(o=>o.v!=null && Math.abs(o.v-p[2])<=6);
+  const higher = sameMonth.filter(o=>o.v>p[2] || (Math.abs(o.v-p[2])<0.001 && o.sj<si)).length;
+  const hasCollision = sameMonth.length>1;
+  if(hasCollision && higher>0){
+    // Lower line: put label below the point.
+    ctx.textBaseline='top';
+    ctx.fillText(label,p[0],Math.min(H-B-4,p[1]+12+(higher-1)*14));
+  }else{
+    // Highest/standalone line: put label clearly above the point.
+    ctx.textBaseline='bottom';
+    const lift=hasCollision?18:8;
+    ctx.fillText(label,p[0],Math.max(14,p[1]-lift));
+  }
   ctx.restore();
 })});
  if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPI data',W/2-45,H/2)}
