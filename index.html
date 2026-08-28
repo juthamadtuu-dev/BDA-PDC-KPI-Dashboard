@@ -547,8 +547,15 @@ async function generatePowerPoint(){
  drawHistory(defs); drawYear(defs);
  const monthlyChartImage=historyChart.toDataURL('image/png');
  const annualChartImage=yearChart.toDataURL('image/png');
- // Annual summary
- s=pptx.addSlide();title(s,'Annual KPI Summary','Year '+currentYear);s.addText('Filter: หน่วยงาน '+pptText(pack.unit)+'  |  Employee '+pptText(pack.id)+'  |  ผู้ประเมิน '+pptText(pack.evaluator),{x:.45,y:.85,w:12.3,h:.3,fontFace:'Tahoma',fontSize:12,color:muted,margin:0});s.addImage({data:annualChartImage,x:.55,y:1.30,w:12.1,h:5.25});
+ // Annual summary — executive cards + clean horizontal performance bars
+ s=pptx.addSlide();title(s,'Annual KPI Summary','Year '+currentYear);
+ s.addText('Filter: หน่วยงาน '+pptText(pack.unit)+'  |  Employee '+pptText(pack.id)+'  |  ผู้ประเมิน '+pptText(pack.evaluator),{x:.45,y:.84,w:12.3,h:.28,fontFace:'Tahoma',fontSize:11,color:muted,margin:0});
+ const annual=defs.map(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v));return {name:d.name,avg:vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null}});
+ const cardColors=['2F6BDE','23A55A','F59E0B','D92D20','7A7A7A'];
+ annual.forEach((a,i)=>{let x=.45+i*2.52,w=2.32; s.addShape(pptx.ShapeType.roundRect,{x,y:1.28,w,h:1.30,rectRadius:.08,fill:{color:'FFFFFF'},line:{color:'D9E2EC',pt:1}}); s.addShape(pptx.ShapeType.rect,{x,y:1.28,w:.07,h:1.30,fill:{color:cardColors[i]||blue},line:{color:cardColors[i]||blue}}); s.addText(a.name,{x:x+.18,y:1.47,w:w-.34,h:.35,fontFace:'Tahoma',fontSize:11,bold:true,color:text,align:'center',valign:'mid',margin:0,fit:'shrink'}); s.addText(a.avg==null?'–':a.avg.toFixed(0)+'%',{x:x+.18,y:1.91,w:w-.34,h:.42,fontFace:'Tahoma',fontSize:24,bold:true,color:a.avg==null?'98A2B3':cardColors[i]||blue,align:'center',margin:0});});
+ s.addText('Annual Performance',{x:.55,y:2.92,w:4,h:.3,fontFace:'Tahoma',fontSize:15,bold:true,color:text,margin:0});
+ annual.forEach((a,i)=>{let y=3.42+i*.60; s.addText(a.name,{x:.62,y:y-.02,w:2.75,h:.28,fontFace:'Tahoma',fontSize:11,color:text,margin:0,fit:'shrink'}); s.addShape(pptx.ShapeType.roundRect,{x:3.55,y,w:7.65,h:.20,rectRadius:.04,fill:{color:'E8EDF3'},line:{color:'E8EDF3'}}); if(a.avg!=null){let bw=7.65*Math.max(0,Math.min(100,a.avg))/100; if(bw>0)s.addShape(pptx.ShapeType.roundRect,{x:3.55,y,w:bw,h:.20,rectRadius:.04,fill:{color:cardColors[i]||blue},line:{color:cardColors[i]||blue}});} s.addText(a.avg==null?'No Data':a.avg.toFixed(1)+'%',{x:11.38,y:y-.06,w:1.05,h:.3,fontFace:'Tahoma',fontSize:11,bold:true,color:a.avg==null?'98A2B3':text,align:'right',margin:0});});
+ s.addText('Note: KPI ที่ไม่มีข้อมูลแสดงเป็น “– / No Data” และไม่นับเป็น 0%',{x:.62,y:6.55,w:8.5,h:.22,fontFace:'Tahoma',fontSize:9,color:muted,margin:0});
  // Monthly trend — exact image of the dashboard chart; missing months remain blank (never converted to 0).
  s=pptx.addSlide();title(s,'Monthly KPI Trend','JAN–DEC '+currentYear);s.addImage({data:monthlyChartImage,x:.55,y:1.05,w:12.15,h:5.65});
  // KPI table
