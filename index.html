@@ -669,7 +669,19 @@ async function generatePowerPoint(){
  function addTrend(scope,defs){drawHistory(defs);const img=historyChart.toDataURL('image/png');let s=pptx.addSlide();title(s,scope==='ALL'?'Monthly KPIs Trend — Overall':'Monthly KPIs Trend — '+scope,'JAN–DEC '+currentYear);s.addImage({data:img,x:.55,y:1.05,w:12.15,h:5.65});}
  function addDetail(scope,defs){let s=pptx.addSlide();title(s,scope==='ALL'?'KPIs Performance Detail — Overall':'KPIs Performance Detail — '+scope,'Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v)),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',max==null?'-':max.toFixed(1)+'%',min==null?'-':min.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});}
  // Cover
- let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const dataAsOf=localStorage.getItem('bdaPdcPublishedDate')||'28-Aug-2026';s.addText('Data as of: '+dataAsOf,{x:.8,y:3.85,w:11.7,h:.34,fontFace:'Tahoma',fontSize:15,color:'DCEBFA',align:'center',margin:0});
+ let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const _remoteVersion=localStorage.getItem('bdaPdcRemoteDataVersion');
+let dataAsOf=localStorage.getItem('bdaPdcPublishedDate')||'';
+if(_remoteVersion){
+  const _d=new Date(_remoteVersion);
+  if(!isNaN(_d)){
+    dataAsOf=String(_d.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_d.getMonth()]+'-'+_d.getFullYear();
+  }
+}
+if(!dataAsOf){
+  const _n=new Date();
+  dataAsOf=String(_n.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_n.getMonth()]+'-'+_n.getFullYear();
+}
+s.addText('Data as of: '+dataAsOf,{x:.8,y:3.85,w:11.7,h:.34,fontFace:'Tahoma',fontSize:15,color:'DCEBFA',align:'center',margin:0});
  // Overall first
  let pack=pptSeriesFor('ALL'),people=allPeople();addSummary('ALL',pack.series,people);addTrend('ALL',pack.series);addDetail('ALL',pack.series);
  // Then each unit
