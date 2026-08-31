@@ -472,7 +472,7 @@ function renderHistory(){
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380,dprOverride=null){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
 function drawHistory(series,targetCanvas=historyChart,dprOverride=null){
- let {ctx,W,H}=setupCanvas(targetCanvas,380,dprOverride),L=52,R=42,T=62,B=58;ctx.font='12px Arial';ctx.textAlign='left';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
+ let {ctx,W,H}=setupCanvas(targetCanvas,380,dprOverride),L=52,R=42,T=50,B=58;ctx.font='12px Arial';ctx.textAlign='left';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
  for(let y=0;y<=100;y+=20){let py=T+(100-y)/100*(H-T-B);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(W-R,py);ctx.stroke();ctx.fillStyle='#667085';ctx.fillText(y+'%',10,py+4)}
  months.forEach((m,i)=>{let x=L+i*(W-L-R)/(months.length-1);ctx.fillStyle='#667085';ctx.fillText(m,x-18,H-20)});
  let lx=L; series.forEach((s,si)=>{ctx.fillStyle=chartColors[si];ctx.fillRect(lx,T-35,12,3);ctx.fillStyle='#344054';ctx.font='11px Arial';ctx.fillText(s.name,lx+17,T-30);lx+=ctx.measureText(s.name).width+40;});
