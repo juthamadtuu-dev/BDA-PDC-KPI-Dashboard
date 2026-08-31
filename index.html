@@ -471,8 +471,8 @@ function renderHistory(){
 }
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
-function drawHistory(series){
- let {ctx,W,H}=setupCanvas(historyChart),L=52,R=42,T=62,B=58;ctx.font='12px Arial';ctx.textAlign='left';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
+function drawHistory(series,targetCanvas=historyChart){
+ let {ctx,W,H}=setupCanvas(targetCanvas),L=52,R=42,T=62,B=58;ctx.font='12px Arial';ctx.textAlign='left';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
  for(let y=0;y<=100;y+=20){let py=T+(100-y)/100*(H-T-B);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(W-R,py);ctx.stroke();ctx.fillStyle='#667085';ctx.fillText(y+'%',10,py+4)}
  months.forEach((m,i)=>{let x=L+i*(W-L-R)/(months.length-1);ctx.fillStyle='#667085';ctx.fillText(m,x-18,H-20)});
  let lx=L; series.forEach((s,si)=>{ctx.fillStyle=chartColors[si];ctx.fillRect(lx,T-35,12,3);ctx.fillStyle='#344054';ctx.font='11px Arial';ctx.fillText(s.name,lx+17,T-30);lx+=ctx.measureText(s.name).width+40;});
@@ -666,7 +666,20 @@ async function generatePowerPoint(){
    s.addText('KPIs Snapshot',{x:.55,y:3.92,w:3,h:.3,fontFace:'Tahoma',fontSize:15,bold:true,color:text,margin:0});s.addShape(pptx.ShapeType.line,{x:.55,y:4.28,w:12.15,h:0,line:{color:'D9E2EC',pt:1}});
    annual.forEach((a,i)=>{let y=4.52+i*.43,c=cardColors[i]||blue,avg=a.avg==null?'–':a.avg.toFixed(1)+'%';s.addShape(pptx.ShapeType.ellipse,{x:.62,y:y+.02,w:.13,h:.13,fill:{color:c},line:{color:c}});s.addText(a.name,{x:.86,y,w:4.05,h:.22,fontFace:'Tahoma',fontSize:10.5,color:text,margin:0,fit:'shrink'});s.addText('Annual '+avg,{x:5.1,y,w:2.8,h:.22,fontFace:'Tahoma',fontSize:10.5,bold:true,color:text,margin:0});let st=statusOf(a);s.addText(st[0],{x:9.15,y,w:2.25,h:.22,fontFace:'Tahoma',fontSize:9,bold:true,color:st[1],align:'center',margin:0});});
  }
- function addTrend(scope,defs){drawHistory(defs);const img=historyChart.toDataURL('image/png');let s=pptx.addSlide();title(s,scope==='ALL'?'Monthly KPIs Trend — Overall':'Monthly KPIs Trend — '+scope,'JAN–DEC '+currentYear);s.addImage({data:img,x:.55,y:1.05,w:12.15,h:5.65});}
+ function addTrend(scope,defs){
+   // Draw PPT chart on a separate off-screen canvas so the dashboard chart never moves/redraws.
+   const holder=document.createElement('div');
+   holder.style.cssText='position:fixed;left:-20000px;top:0;width:1180px;height:420px;visibility:hidden;pointer-events:none;';
+   const pptCanvas=document.createElement('canvas');
+   holder.appendChild(pptCanvas);
+   document.body.appendChild(holder);
+   drawHistory(defs,pptCanvas);
+   const img=pptCanvas.toDataURL('image/png');
+   holder.remove();
+   let s=pptx.addSlide();
+   title(s,scope==='ALL'?'Monthly KPIs Trend — Overall':'Monthly KPIs Trend — '+scope,'JAN–DEC '+currentYear);
+   s.addImage({data:img,x:.55,y:1.05,w:12.15,h:5.65});
+ }
  function addDetail(scope,defs){let s=pptx.addSlide();title(s,scope==='ALL'?'KPIs Performance Detail — Overall':'KPIs Performance Detail — '+scope,'Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v)),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',max==null?'-':max.toFixed(1)+'%',min==null?'-':min.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});}
  // Cover
  let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const _remoteVersion=localStorage.getItem('bdaPdcRemoteDataVersion');
