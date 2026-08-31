@@ -234,7 +234,7 @@ function changeYear(y){
   applyMenuSetup(); refreshMatrixUnits(); refreshHistoryUnits(); fillHistoryEvaluators(); fillHistoryEmployees(); refreshEmployeeControls(); refreshKpiControls(); renderSetup(); render(); renderHistory(); renderEmployee(); renderKeyData(); renderSaved();
 }
 syncYearUI();
-function fmt(v){return v==null?'-':(Math.round(v*10)/10)+'%'}
+function fmt(v){if(v==null)return '-';let n=Number(v);return Math.abs(n-100)<1e-9?'100%':n.toFixed(2)+'%'}
 function cls(v){return v==null?'none':v>=95?'good':v>=90?'warn':'bad'}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function loadEdits(){try{return JSON.parse(localStorage.getItem('bdaPdcEditsV2')||'[]')}catch(e){return[]}}
@@ -485,7 +485,7 @@ function drawHistory(series,targetCanvas=historyChart,dprOverride=null){
   ctx.textAlign='center';
   ctx.textBaseline='bottom';
   ctx.fillStyle=chartColors[si];
-  let label=(Math.round(p[2]*10)/10).toString().replace(/\.0$/,'')+'%';
+  let label=fmt(p[2]);
   // Avoid overlapping labels when KPI lines are close together at the same month.
   const sameMonth = series.map((ss,sj)=>({sj,v:ss.vals[p[3]]})).filter(o=>o.v!=null && Math.abs(o.v-p[2])<=6);
   const higher = sameMonth.filter(o=>o.v>p[2] || (Math.abs(o.v-p[2])<0.001 && o.sj<si)).length;
@@ -508,7 +508,7 @@ function drawHistory(series,targetCanvas=historyChart,dprOverride=null){
 function drawYear(series){
  let {ctx,W,H}=setupCanvas(yearChart),L=55,R=20,T=35,B=160;ctx.font='12px Arial';ctx.fillStyle='#667085';ctx.strokeStyle='#e4e7ec';ctx.lineWidth=1;
  for(let y=0;y<=100;y+=20){let py=T+(100-y)/100*(H-T-B);ctx.beginPath();ctx.moveTo(L,py);ctx.lineTo(W-R,py);ctx.stroke();ctx.fillStyle='#667085';ctx.fillText(y+'%',12,py+4)}
- let gap=(W-L-R)/series.length,bw=Math.min(55,gap*.55);series.forEach((s,i)=>{let vals=s.vals.filter(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,x=L+gap*i+gap/2;if(avg!=null){let y=T+(100-Math.max(0,Math.min(100,avg)))/100*(H-T-B);ctx.fillStyle=chartColors[i];ctx.fillRect(x-bw/2,y,bw,H-B-y);ctx.fillStyle='#344054';ctx.textAlign='center';ctx.font='bold 12px Arial';ctx.fillText((Math.round(avg*10)/10)+'%',x,y-7)}ctx.save();ctx.translate(x,H-B+8);ctx.rotate(-Math.PI/2);ctx.textAlign='right';ctx.fillStyle='#475467';ctx.font='11px Arial';ctx.fillText(s.name,0,0);ctx.restore()});ctx.textAlign='left';
+ let gap=(W-L-R)/series.length,bw=Math.min(55,gap*.55);series.forEach((s,i)=>{let vals=s.vals.filter(v=>v!=null),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,x=L+gap*i+gap/2;if(avg!=null){let y=T+(100-Math.max(0,Math.min(100,avg)))/100*(H-T-B);ctx.fillStyle=chartColors[i];ctx.fillRect(x-bw/2,y,bw,H-B-y);ctx.fillStyle='#344054';ctx.textAlign='center';ctx.font='bold 12px Arial';ctx.fillText(fmt(avg),x,y-7)}ctx.save();ctx.translate(x,H-B+8);ctx.rotate(-Math.PI/2);ctx.textAlign='right';ctx.fillStyle='#475467';ctx.font='11px Arial';ctx.fillText(s.name,0,0);ctx.restore()});ctx.textAlign='left';
  if(!series.some(s=>s.vals.some(v=>v!=null))){ctx.fillStyle='#98a2b3';ctx.font='16px Arial';ctx.fillText('No KPI data',W/2-45,H/2)}
 }
 function findEmployee(){let q=employeeSearch.value.trim().toLowerCase(),list=allPeople(),hit=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+hit.map(x=>'<option value="'+x.id+'">'+esc(x.id+' - '+x.name)+'</option>').join('');if(hit.length){employeeSelect.value=hit.length===list.length?'ALL':hit[0].id;renderEmployee()}else employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>'}
@@ -518,7 +518,7 @@ function renderEmployee(){applyEdits();let id=employeeSelect.value||'ALL',defs=k
 function calcPct(){
  let t=parseFloat(iTarget.value),a=parseFloat(iActual.value),p=null;
  if(isFinite(t)&&isFinite(a)&&t>0&&a>=0){p=a/t*100;p=Math.min(p,100)}
- pctPreview.textContent=p==null?'-':p.toFixed(1)+'%';return p;
+ pctPreview.textContent=fmt(p);return p;
 }
 let editingScoreIndex=null;
 function saveScore(){
@@ -547,7 +547,7 @@ function saveScore(){
  if(document.getElementById('employeePage')?.classList.contains('active')) renderEmployee();
  // Stay on Input Score. The table below refreshes immediately; Key Data reads the same saved dataset.
  renderSaved();
- alert((wasEdit?'แก้ไขคะแนนแล้ว ':'บันทึกแล้ว ')+p.toFixed(1)+'%');
+ alert((wasEdit?'แก้ไขคะแนนแล้ว ':'บันทึกแล้ว ')+fmt(p));
 }
 function clearScore(){editingScoreIndex=null;saveScoreBtn.innerHTML='💾 Save Score';iTarget.value='';iActual.value='';iRemark.value='';calcPct()}
 function editSavedScore(index){
@@ -663,9 +663,9 @@ async function generatePowerPoint(){
    const unitCount=new Set(people.map(x=>effectiveUnit(x)).filter(Boolean)).size,empCount=new Set(people.map(x=>x.id).filter(Boolean)).size,evalCount=new Set(people.map(x=>effectiveEvaluator(x).trim()).filter(Boolean)).size;
    s.addText('หน่วยงาน: '+unitCount+'   •   Employee: '+empCount+'   •   ผู้ประเมิน: '+evalCount,{x:4.0,y:.86,w:8.8,h:.28,fontFace:'Tahoma',fontSize:10,color:muted,align:'right',margin:0});
    const annual=annualData(defs);
-   annual.forEach((a,i)=>{let x=.48+i*2.53,w=2.32,c=cardColors[i]||blue,st=statusOf(a);s.addShape(pptx.ShapeType.roundRect,{x,y:1.35,w,h:2.15,rectRadius:.08,fill:{color:'FFFFFF'},line:{color:'D9E2EC',pt:1}});s.addShape(pptx.ShapeType.rect,{x,y:1.35,w,h:.09,fill:{color:c},line:{color:c}});s.addText(a.name,{x:x+.16,y:1.65,w:w-.32,h:.42,fontFace:'Tahoma',fontSize:11,bold:true,color:text,align:'center',valign:'mid',margin:0,fit:'shrink'});s.addText(a.avg==null?'–':a.avg.toFixed(0)+'%',{x:x+.12,y:2.18,w:w-.24,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:a.avg==null?'98A2B3':c,align:'center',margin:0});s.addShape(pptx.ShapeType.roundRect,{x:x+.48,y:2.91,w:w-.96,h:.30,rectRadius:.05,fill:{color:st[2]},line:{color:st[2]}});s.addText(st[0],{x:x+.48,y:2.98,w:w-.96,h:.12,fontFace:'Tahoma',fontSize:8,bold:true,color:st[1],align:'center',margin:0});});
+   annual.forEach((a,i)=>{let x=.48+i*2.53,w=2.32,c=cardColors[i]||blue,st=statusOf(a);s.addShape(pptx.ShapeType.roundRect,{x,y:1.35,w,h:2.15,rectRadius:.08,fill:{color:'FFFFFF'},line:{color:'D9E2EC',pt:1}});s.addShape(pptx.ShapeType.rect,{x,y:1.35,w,h:.09,fill:{color:c},line:{color:c}});s.addText(a.name,{x:x+.16,y:1.65,w:w-.32,h:.42,fontFace:'Tahoma',fontSize:11,bold:true,color:text,align:'center',valign:'mid',margin:0,fit:'shrink'});s.addText(a.avg==null?'–':fmt(a.avg),{x:x+.12,y:2.18,w:w-.24,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:a.avg==null?'98A2B3':c,align:'center',margin:0});s.addShape(pptx.ShapeType.roundRect,{x:x+.48,y:2.91,w:w-.96,h:.30,rectRadius:.05,fill:{color:st[2]},line:{color:st[2]}});s.addText(st[0],{x:x+.48,y:2.98,w:w-.96,h:.12,fontFace:'Tahoma',fontSize:8,bold:true,color:st[1],align:'center',margin:0});});
    s.addText('KPIs Snapshot',{x:.55,y:3.92,w:3,h:.3,fontFace:'Tahoma',fontSize:15,bold:true,color:text,margin:0});s.addShape(pptx.ShapeType.line,{x:.55,y:4.28,w:12.15,h:0,line:{color:'D9E2EC',pt:1}});
-   annual.forEach((a,i)=>{let y=4.52+i*.43,c=cardColors[i]||blue,avg=a.avg==null?'–':a.avg.toFixed(1)+'%';s.addShape(pptx.ShapeType.ellipse,{x:.62,y:y+.02,w:.13,h:.13,fill:{color:c},line:{color:c}});s.addText(a.name,{x:.86,y,w:4.05,h:.22,fontFace:'Tahoma',fontSize:10.5,color:text,margin:0,fit:'shrink'});s.addText('Annual '+avg,{x:5.1,y,w:2.8,h:.22,fontFace:'Tahoma',fontSize:10.5,bold:true,color:text,margin:0});let st=statusOf(a);s.addText(st[0],{x:9.15,y,w:2.25,h:.22,fontFace:'Tahoma',fontSize:9,bold:true,color:st[1],align:'center',margin:0});});
+   annual.forEach((a,i)=>{let y=4.52+i*.43,c=cardColors[i]||blue,avg=a.avg==null?'–':fmt(a.avg);s.addShape(pptx.ShapeType.ellipse,{x:.62,y:y+.02,w:.13,h:.13,fill:{color:c},line:{color:c}});s.addText(a.name,{x:.86,y,w:4.05,h:.22,fontFace:'Tahoma',fontSize:10.5,color:text,margin:0,fit:'shrink'});s.addText('Annual '+avg,{x:5.1,y,w:2.8,h:.22,fontFace:'Tahoma',fontSize:10.5,bold:true,color:text,margin:0});let st=statusOf(a);s.addText(st[0],{x:9.15,y,w:2.25,h:.22,fontFace:'Tahoma',fontSize:9,bold:true,color:st[1],align:'center',margin:0});});
  }
  function addTrend(scope,defs){
    // Draw PPT chart on a separate off-screen canvas so the dashboard chart never moves/redraws.
@@ -682,7 +682,7 @@ async function generatePowerPoint(){
    title(s,scope==='ALL'?'Monthly KPIs Trend — Overall':'Monthly KPIs Trend — '+scope,'JAN–DEC '+currentYear);
    s.addImage({data:img,x:.55,y:1.05,w:12.15,h:5.65});
  }
- function addDetail(scope,defs){let s=pptx.addSlide();title(s,scope==='ALL'?'KPIs Performance Detail — Overall':'KPIs Performance Detail — '+scope,'Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v)),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':avg.toFixed(1)+'%',max==null?'-':max.toFixed(1)+'%',min==null?'-':min.toFixed(1)+'%',avg==null?'No Data':avg>=95?'Achieve':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});}
+ function addDetail(scope,defs){let s=pptx.addSlide();title(s,scope==='ALL'?'KPIs Performance Detail — Overall':'KPIs Performance Detail — '+scope,'Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v)),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':fmt(avg),max==null?'-':fmt(max),min==null?'-':fmt(min),avg==null?'No Data':avg>=95?'Achieve':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});}
  // Cover
  let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const _remoteVersion=localStorage.getItem('bdaPdcRemoteDataVersion');
 let dataAsOf=localStorage.getItem('bdaPdcPublishedDate')||'';
