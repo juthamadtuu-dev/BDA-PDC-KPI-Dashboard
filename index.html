@@ -495,9 +495,10 @@ function drawHistory(series,targetCanvas=historyChart){
     ctx.textBaseline='top';
     ctx.fillText(label,p[0],Math.min(H-B-4,p[1]+12+(higher-1)*14));
   }else{
-    // Highest/standalone line: put label clearly above the point.
+    // Highest/standalone line: keep the same fixed label height.
+    // This keeps all 100% labels aligned on one row; lower close labels go below instead.
     ctx.textBaseline='bottom';
-    const lift=hasCollision?18:8;
+    const lift=8;
     ctx.fillText(label,p[0],Math.max(14,p[1]-lift));
   }
   ctx.restore();
@@ -669,12 +670,13 @@ async function generatePowerPoint(){
  function addTrend(scope,defs){
    // Draw PPT chart on a separate off-screen canvas so the dashboard chart never moves/redraws.
    const holder=document.createElement('div');
-   holder.style.cssText='position:fixed;left:-20000px;top:0;width:1180px;height:420px;visibility:hidden;pointer-events:none;';
+   // Render the PPT chart at 2x logical size for a sharper PNG on every machine.
+   holder.style.cssText='position:fixed;left:-20000px;top:0;width:2360px;height:840px;visibility:hidden;pointer-events:none;';
    const pptCanvas=document.createElement('canvas');
    holder.appendChild(pptCanvas);
    document.body.appendChild(holder);
    drawHistory(defs,pptCanvas);
-   const img=pptCanvas.toDataURL('image/png');
+   const img=pptCanvas.toDataURL('image/png',1.0);
    holder.remove();
    let s=pptx.addSlide();
    title(s,scope==='ALL'?'Monthly KPIs Trend — Overall':'Monthly KPIs Trend — '+scope,'JAN–DEC '+currentYear);
