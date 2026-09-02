@@ -345,6 +345,37 @@ function sortSetupRows(table,rowSel,inputSel){let body=table.tBodies[0]||table,r
 const KPI_DEFAULT_META=[{indicator:'%ข้อมูลบันทึกถูกต้อง',weight:30},{indicator:'%Error Rate ของข้อมูลต่ำกว่าเกณฑ์',weight:25},{indicator:'%เอกสารที่อัปเดตทันสมัย',weight:20},{indicator:'ระดับความพึงพอใจของหน่วยงานที่สนับสนุน',weight:15},{indicator:'%การใช้งานระบบอย่างถูกต้อง',weight:10}];
 function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,unit:c.unit||'ALL',order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,unit:x.unit||'ALL',order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
 function kpiAppliesToUnit(k,unit){return !k.unit||k.unit==='ALL'||k.unit===unit}
+
+/* One KPI name must appear only once.
+   If Setup created the same KPI again for a unit, keep the unit version
+   but inherit the original BASE index so old scores remain attached. */
+function kpiDefsForUnit(unit){
+ let all=kpiDefs(), applicable=all.filter(k=>kpiAppliesToUnit(k,unit)), out=[];
+ applicable.forEach(k=>{
+   let norm=(k.display||'').trim().toLowerCase();
+   let ix=out.findIndex(x=>(x.display||'').trim().toLowerCase()===norm);
+   if(ix<0){out.push({...k});return}
+   let prev=out[ix];
+   let preferred=(k.unit===unit && prev.unit!===unit)?k:prev;
+   let base=[prev,k].find(x=>x.baseIndex!=null);
+   out[ix]={...preferred,
+     baseIndex:base?base.baseIndex:preferred.baseIndex,
+     original:base?base.original:preferred.original
+   };
+ });
+ return out.sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'));
+}
+function kpiDefsUniqueAll(){
+ let out=[];
+ kpiDefs().forEach(k=>{
+   let norm=(k.display||'').trim().toLowerCase();
+   let ix=out.findIndex(x=>(x.display||'').trim().toLowerCase()===norm);
+   if(ix<0){out.push({...k});return}
+   let prev=out[ix],base=[prev,k].find(x=>x.baseIndex!=null);
+   if(base)out[ix]={...base,unit:'ALL'};
+ });
+ return out.sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'));
+}
 function kpiUnitOptions(selected){return '<option value="ALL"'+((!selected||selected==='ALL')?' selected':'')+'>ทุกหน่วยงาน</option>'+historyUnits().map(u=>'<option value="'+esc(u)+'"'+(u===selected?' selected':'')+'>'+esc(unitCfg(u).display)+'</option>').join('')}
 function personUnitById(id){let x=allPeople().find(p=>String(p.id)===String(id));return x?effectiveUnit(x):''}
 function kpiCell(row,k,month,id){
@@ -361,9 +392,13 @@ function kpiCell(row,k,month,id){
  );
 
  if(month!=='TTL'){
-   let e=loadEdits().slice().reverse().find(x=>x.month===month&&String(x.id)===String(id)&&sameKpi(x));
-   if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};
-   if(k.baseIndex!=null)return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
+   let e=loadEdits().slice().reverse().find(x=>x.month===month&&String(x.id)===String(id)&&sameKpi(x)&&x.pct!=null&&Number.isFinite(Number(x.pct)));
+   if(e)return {ttl:e.target,actual:e.actual,pct:Number(e.pct)};
+   // Blank edit records must never wipe the original monthly score.
+   if(k.baseIndex!=null){
+     let baseRow=(BASE.data?.[month]||[]).find(x=>String(x.id)===String(id));
+     return baseRow?.kpis?.[k.baseIndex]||row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
+   }
    return {ttl:null,actual:null,pct:null};
  }
 
@@ -383,7 +418,7 @@ function kpiCell(row,k,month,id){
 }
 function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>หน่วยงาน</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions(r.unit)+'</select></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions('ALL')+'</select></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
-function refreshKpiControls(){let cur=iKpi.value,emp=iEmployee?.value||'ALL',unit=emp==='ALL'?'ALL':personUnitById(emp);let defs=kpiDefs().filter(k=>emp==='ALL'||kpiAppliesToUnit(k,unit));iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+defs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
+function refreshKpiControls(){let cur=iKpi.value,emp=iEmployee?.value||'ALL',unit=emp==='ALL'?'ALL':personUnitById(emp);let defs=emp==='ALL'?kpiDefsUniqueAll():kpiDefsForUnit(unit);iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+defs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
 function renderSetup(){renderMenuSetup();renderKpiSetup();let cfg=loadSetup(),baseUnits=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))],customUnits=cfg.customUnits||[],unitRows=[...baseUnits.filter(u=>!(cfg.deletedUnits||[]).includes(u)).map(u=>({key:u,original:u,name:cfg.units?.[u]?.display||u,order:cfg.units?.[u]?.order||999,custom:false})),...customUnits.map((u,i)=>({key:'__custom_unit_'+i,original:'',name:u.name||'',order:u.order||999,custom:true}))].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name,'th'));unitSetup.innerHTML='<tr><th>Order</th><th>Original Unit</th><th>Unit Name</th><th>Action</th></tr>'+unitRows.map((r,i)=>'<tr class="unitRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="suOrder" type="number" min="1" value="'+(r.order===999?i+1:r.order)+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="suName" value="'+esc(r.name)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let evals=evaluatorList();evaluatorSetup.innerHTML='<tr><th>Order</th><th>ชื่อผู้ประเมิน</th><th>Action</th></tr>'+evals.map((e,i)=>'<tr class="evalRow"><td><input class="svOrder" type="number" min="1" value="'+(i+1)+'" style="width:80px"></td><td><input class="svName" value="'+esc(e)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let people=allPeople().slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));employeeSetup.innerHTML='<tr><th>Order</th><th>ID</th><th>Name</th><th>Unit</th><th>ผู้ประเมิน</th><th>Action</th></tr>'+people.map((x,i)=>{let c=cfg.employees?.[x.id]||{},custom=!!x._custom;return '<tr class="empRow" data-custom="'+(custom?'1':'0')+'"><td><input class="seOrder" type="number" min="1" value="'+(c.order||i+1)+'" style="width:80px"></td><td><input class="seId" value="'+esc(x.id)+'" '+(custom?'':'readonly')+' style="width:130px"></td><td><input class="seName" value="'+esc(c.display||x.name)+'" style="width:95%"></td><td><select class="seUnit" style="min-width:220px">'+setupUnitOptions(c.unit||x.position)+'</select></td><td><select class="seEvaluator" style="min-width:220px">'+setupEvaluatorOptions(empCfg(x).evaluator)+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'employee\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>'}).join('');bindAutoSort(unitSetup,'.unitRow','.suOrder');bindAutoSort(evaluatorSetup,'.evalRow','.svOrder');bindAutoSort(employeeSetup,'.empRow','.seOrder')}
 function addUnitRow(){let n=document.querySelectorAll('.unitRow').length+1,tbody=unitSetup.tBodies[0]||unitSetup;let tr=document.createElement('tr');tr.className='unitRow';tr.dataset.key='__new_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="suOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="suName" placeholder="ชื่อหน่วยงาน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(unitSetup,'.unitRow','.suOrder')}
 function addEvaluatorRow(){let n=document.querySelectorAll('.evalRow').length+1,tbody=evaluatorSetup.tBodies[0]||evaluatorSetup;let tr=document.createElement('tr');tr.className='evalRow';tr.innerHTML='<td><input class="svOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td><input class="svName" placeholder="ชื่อผู้ประเมิน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(evaluatorSetup,'.evalRow','.svOrder')}
@@ -496,36 +531,46 @@ function inputFilterChanged(){
 }
 
 function renderHistory(){
- applyEdits(); let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
- let selectedIds=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
- if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||effectiveEvaluator(px).trim()!==evaluator)selectedIds=[];}
+ applyEdits();
+ let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
 
- // กราฟต้องอ่านคะแนนเดิมจาก BASE + คะแนนที่แก้/กรอกใหม่จาก localStorage
- // โดยคะแนนใหม่ override คะแนนเดิมเฉพาะ Employee + Month + KPI เดียวกัน
+ let people=allPeople().filter(x=>
+   (unit==='ALL'||effectiveUnit(x)===unit) &&
+   (evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)
+ );
+ let selectedIds=id==='UNIT'?people.map(x=>String(x.id)):[String(id)];
+ if(id!=='UNIT'&&!people.some(x=>String(x.id)===String(id)))selectedIds=[];
+
+ // Use one KPI per name. Unit setup controls visibility only.
+ let defs=unit==='ALL'?kpiDefsUniqueAll():kpiDefsForUnit(unit);
  const edits=loadEdits();
- const selectedUnits=new Set(selectedIds.map(personUnitById));
- const defs=kpiDefs().filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit));
 
- function historyPct(empId,k,m){
-   const latest=edits.slice().reverse().find(e=>
-     String(e.id)===String(empId) &&
-     e.month===m &&
+ function pctFor(empId,k,m){
+   // 1) New/edited score wins only when it contains a real percentage.
+   let e=edits.slice().reverse().find(x=>
+     String(x.id)===String(empId) && x.month===m &&
+     x.pct!=null && Number.isFinite(Number(x.pct)) &&
      (
-       e.kpiKey===k.key ||
-       (k.baseIndex!=null && e.kpiKey==='base_'+k.baseIndex) ||
-       e.kpi===k.display ||
-       e.kpi===k.original
+       x.kpiKey===k.key ||
+       x.kpi===k.display ||
+       x.kpi===k.original ||
+       (k.baseIndex!=null && x.kpiKey==='base_'+k.baseIndex)
      )
    );
-   if(latest && latest.pct!=null) return Number(latest.pct);
+   if(e)return Number(e.pct);
 
-   if(k.baseIndex!=null){
-     // Use the same working dataset as Matrix / Employee Detail.
-     // applyEdits() has already merged BASE + saved edits into D, so the
-     // history chart cannot lose months when only some months have edits.
-     const raw=(D.data[m]||[]).find(r=>String(r.id)===String(empId));
-     const v=raw?.kpis?.[k.baseIndex]?.pct;
-     return v==null?null:Number(v);
+   // 2) Always recover the original KPI score directly from BASE.
+   // Do NOT depend on the new unit KPI key.
+   let bi=k.baseIndex;
+   if(bi==null){
+     bi=BASE.kpis.findIndex(n=>
+       String(n).trim().toLowerCase()===String(k.display||k.original||'').trim().toLowerCase()
+     );
+   }
+   if(bi>=0){
+     let br=(BASE.data?.[m]||[]).find(r=>String(r.id)===String(empId));
+     let v=br?.kpis?.[bi]?.pct;
+     if(v!=null&&Number.isFinite(Number(v)))return Number(v);
    }
    return null;
  }
@@ -533,11 +578,12 @@ function renderHistory(){
  let series=defs.map(k=>({
    name:k.display,
    vals:months.map(m=>{
-     const vals=selectedIds.map(empId=>historyPct(empId,k,m)).filter(v=>Number.isFinite(v));
+     let vals=selectedIds.map(empId=>pctFor(empId,k,m)).filter(Number.isFinite);
      return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
    })
  }));
- drawHistory(series); drawYear(series);
+
+ drawHistory(series);drawYear(series);
 }
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380,dprOverride=null){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
@@ -584,7 +630,7 @@ function drawYear(series){
 function findEmployee(){let q=employeeSearch.value.trim().toLowerCase(),list=allPeople(),hit=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+hit.map(x=>'<option value="'+x.id+'">'+esc(x.id+' - '+x.name)+'</option>').join('');if(hit.length){employeeSelect.value=hit.length===list.length?'ALL':hit[0].id;renderEmployee()}else employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>'}
 function clearEmployeeSearch(){employeeSearch.value='';let list=allPeople().sort((a,b)=>empCfg(a).order-empCfg(b).order);employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(list.length){employeeSelect.value='ALL';renderEmployee()}else{employeeSelect.innerHTML='<option value="">ไม่มีพนักงาน</option>';employeeDetail.innerHTML='';}employeeSearch.focus();}
 function employeeEvaluatorChanged(){let ev=employeeEvaluator.value||'ALL',keep=employeeSelect.value;let list=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev).sort((a,b)=>empCfg(a).order-empCfg(b).order);employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(keep==='ALL'||list.some(x=>x.id===keep))employeeSelect.value=keep;else employeeSelect.value='ALL';renderEmployee()}
-function renderEmployee(){applyEdits();let id=employeeSelect.value||'ALL',ev=employeeEvaluator?.value||'ALL';if(id==='ALL'){let people=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev);let selectedUnits=new Set(people.map(x=>personUnitById(x.id)));let defs=kpiDefs().filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit));if(!people.length){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}employeeDetail.innerHTML='<div class="detailhead"><div><small>พนักงาน</small><b>รวมพนักงาน '+people.length+' คน</b></div><div><small>ผู้ประเมิน</small><b>'+(ev==='ALL'?'รวมผู้ประเมิน '+new Set(people.map(x=>effectiveEvaluator(x).trim()).filter(Boolean)).size+' คน':esc(ev))+'</b></div><div><small>ปี</small><b>'+currentYear+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>'<tr><th>'+m+'</th>'+defs.map(k=>{let vals=[];people.forEach(x=>{let r=(D.data[m]||[]).find(z=>z.id===x.id)||x,c=kpiCell(r,k,m,x.id);if(c&&Number.isFinite(c.pct))vals.push(c.pct)});let pct=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;return '<td class="'+cls(pct)+'">'+fmt(pct)+'</td>'}).join('')+'</tr>').join('')+'</table></div>';return;}let x=allPeople().find(r=>r.id===id);if(!x){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}let defs=kpiDefs().filter(k=>kpiAppliesToUnit(k,personUnitById(id)));employeeDetail.innerHTML='<div class="detailhead"><div><small>ID</small><b>'+esc(x.id)+'</b></div><div><small>ชื่อพนักงาน</small><b>'+esc(empCfg(x).display)+'</b></div><div><small>ตำแหน่ง</small><b>'+esc(x.position)+'</b></div><div><small>ผู้ประเมิน</small><b>'+esc(effectiveEvaluator(x))+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>{let r=(D.data[m]||[]).find(z=>z.id===id)||x;return '<tr><th>'+m+'</th>'+defs.map(k=>{let c=kpiCell(r,k,m,id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
+function renderEmployee(){applyEdits();let id=employeeSelect.value||'ALL',ev=employeeEvaluator?.value||'ALL';if(id==='ALL'){let people=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev);let selectedUnits=new Set(people.map(x=>personUnitById(x.id)));let defs=kpiDefsUniqueAll();if(!people.length){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}employeeDetail.innerHTML='<div class="detailhead"><div><small>พนักงาน</small><b>รวมพนักงาน '+people.length+' คน</b></div><div><small>ผู้ประเมิน</small><b>'+(ev==='ALL'?'รวมผู้ประเมิน '+new Set(people.map(x=>effectiveEvaluator(x).trim()).filter(Boolean)).size+' คน':esc(ev))+'</b></div><div><small>ปี</small><b>'+currentYear+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>'<tr><th>'+m+'</th>'+defs.map(k=>{let vals=[];people.forEach(x=>{let r=(D.data[m]||[]).find(z=>z.id===x.id)||x,c=kpiCell(r,k,m,x.id);if(c&&Number.isFinite(c.pct))vals.push(c.pct)});let pct=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;return '<td class="'+cls(pct)+'">'+fmt(pct)+'</td>'}).join('')+'</tr>').join('')+'</table></div>';return;}let x=allPeople().find(r=>r.id===id);if(!x){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}let defs=kpiDefsForUnit(personUnitById(id));employeeDetail.innerHTML='<div class="detailhead"><div><small>ID</small><b>'+esc(x.id)+'</b></div><div><small>ชื่อพนักงาน</small><b>'+esc(empCfg(x).display)+'</b></div><div><small>ตำแหน่ง</small><b>'+esc(x.position)+'</b></div><div><small>ผู้ประเมิน</small><b>'+esc(effectiveEvaluator(x))+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>{let r=(D.data[m]||[]).find(z=>z.id===id)||x;return '<tr><th>'+m+'</th>'+defs.map(k=>{let c=kpiCell(r,k,m,id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
 function calcPct(){
  let t=parseFloat(iTarget.value),a=parseFloat(iActual.value),p=null;
  if(isFinite(t)&&isFinite(a)&&t>0&&a>=0){p=a/t*100;p=Math.min(p,100)}
