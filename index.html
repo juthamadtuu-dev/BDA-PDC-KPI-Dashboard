@@ -278,7 +278,7 @@ function renderStatusDetail(p,m,shownDefs){
 }
 function render(){
  applyEdits(); let m=document.getElementById('month').value,p=getRows(m); let mu=document.getElementById('mUnit')?.value||'ALL',me=document.getElementById('mEvaluator')?.value||'ALL'; p=p.filter(x=>(mu==='ALL'||effectiveUnit(x)===mu)&&(me==='ALL'||effectiveEvaluator(x).trim()===me));
- let defs=kpiDefs(), selectedUnits=new Set(p.map(x=>effectiveUnit(x))), shownDefs=defs.filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit));
+ let defs=kpiDefs(), shownDefs=defs;
  employees.textContent=p.length;
  let all=p.flatMap(x=>shownDefs.map(k=>kpiCell(x,k,m,x.id)?.pct)).filter(v=>v!=null);
  achieve.textContent=all.filter(v=>v>=95).length;follow.textContent=all.filter(v=>v<95).length;
@@ -343,88 +343,17 @@ function addMenuRow(){let n=document.querySelectorAll('.menuRow').length+1,tbody
 function bindAutoSort(table,rowSel,inputSel){table.querySelectorAll(inputSel).forEach(inp=>{if(inp.dataset.sortBound)return;inp.dataset.sortBound='1';const doSort=()=>sortSetupRows(table,rowSel,inputSel);inp.addEventListener('input',doSort);inp.addEventListener('change',doSort);inp.addEventListener('blur',doSort)})}
 function sortSetupRows(table,rowSel,inputSel){let body=table.tBodies[0]||table,rows=[...table.querySelectorAll(rowSel)];rows.sort((a,b)=>(+a.querySelector(inputSel).value||999)-(+b.querySelector(inputSel).value||999));rows.forEach(r=>body.appendChild(r))}
 const KPI_DEFAULT_META=[{indicator:'%ข้อมูลบันทึกถูกต้อง',weight:30},{indicator:'%Error Rate ของข้อมูลต่ำกว่าเกณฑ์',weight:25},{indicator:'%เอกสารที่อัปเดตทันสมัย',weight:20},{indicator:'ระดับความพึงพอใจของหน่วยงานที่สนับสนุน',weight:15},{indicator:'%การใช้งานระบบอย่างถูกต้อง',weight:10}];
-function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,unit:c.unit||'ALL',order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,unit:x.unit||'ALL',order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
-function kpiAppliesToUnit(k,unit){return !k.unit||k.unit==='ALL'||k.unit===unit}
-
-/* One KPI name must appear only once.
-   If Setup created the same KPI again for a unit, keep the unit version
-   but inherit the original BASE index so old scores remain attached. */
-function kpiDefsForUnit(unit){
- let all=kpiDefs(), applicable=all.filter(k=>kpiAppliesToUnit(k,unit)), out=[];
- applicable.forEach(k=>{
-   let norm=(k.display||'').trim().toLowerCase();
-   let ix=out.findIndex(x=>(x.display||'').trim().toLowerCase()===norm);
-   if(ix<0){out.push({...k});return}
-   let prev=out[ix];
-   let preferred=(k.unit===unit && prev.unit!===unit)?k:prev;
-   let base=[prev,k].find(x=>x.baseIndex!=null);
-   out[ix]={...preferred,
-     baseIndex:base?base.baseIndex:preferred.baseIndex,
-     original:base?base.original:preferred.original
-   };
- });
- return out.sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'));
-}
-function kpiDefsUniqueAll(){
- let out=[];
- kpiDefs().forEach(k=>{
-   let norm=(k.display||'').trim().toLowerCase();
-   let ix=out.findIndex(x=>(x.display||'').trim().toLowerCase()===norm);
-   if(ix<0){out.push({...k});return}
-   let prev=out[ix],base=[prev,k].find(x=>x.baseIndex!=null);
-   if(base)out[ix]={...base,unit:'ALL'};
- });
- return out.sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'));
-}
-function kpiUnitOptions(selected){return '<option value="ALL"'+((!selected||selected==='ALL')?' selected':'')+'>ทุกหน่วยงาน</option>'+historyUnits().map(u=>'<option value="'+esc(u)+'"'+(u===selected?' selected':'')+'>'+esc(unitCfg(u).display)+'</option>').join('')}
-function personUnitById(id){let x=allPeople().find(p=>String(p.id)===String(id));return x?effectiveUnit(x):''}
-function kpiCell(row,k,month,id){
- let pu=personUnitById(id)||row?.position||'';
- if(!kpiAppliesToUnit(k,pu))return {ttl:null,actual:null,pct:null};
-
- // คะแนนเก่าอาจเก็บ base_0/base_2 หรือชื่อ KPI เดิมไว้
- // หลังเพิ่มหน่วยงาน ห้ามบังคับ match เฉพาะ key ใหม่
- const sameKpi=e=>e&&(
-   e.kpiKey===k.key ||
-   e.kpi===k.display ||
-   e.kpi===k.original ||
-   (k.baseIndex!=null && e.kpiKey==='base_'+k.baseIndex)
- );
-
- if(month!=='TTL'){
-   let e=loadEdits().slice().reverse().find(x=>x.month===month&&String(x.id)===String(id)&&sameKpi(x)&&x.pct!=null&&Number.isFinite(Number(x.pct)));
-   if(e)return {ttl:e.target,actual:e.actual,pct:Number(e.pct)};
-   // Blank edit records must never wipe the original monthly score.
-   if(k.baseIndex!=null){
-     let baseRow=(BASE.data?.[month]||[]).find(x=>String(x.id)===String(id));
-     return baseRow?.kpis?.[k.baseIndex]||row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
-   }
-   return {ttl:null,actual:null,pct:null};
- }
-
- let es=loadEdits().filter(x=>String(x.id)===String(id)&&sameKpi(x)&&x.pct!=null);
- if(es.length){
-   let ts=es.map(x=>+x.target).filter(Number.isFinite),
-       as=es.map(x=>+x.actual).filter(Number.isFinite),
-       ps=es.map(x=>+x.pct).filter(Number.isFinite);
-   return {
-     ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,
-     actual:as.length?as.reduce((a,b)=>a+b,0):null,
-     pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null
-   };
- }
- if(k.baseIndex!=null)return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
- return {ttl:null,actual:null,pct:null};
-}
-function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>หน่วยงาน</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions(r.unit)+'</select></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
-function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions('ALL')+'</select></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
-function refreshKpiControls(){let cur=iKpi.value,emp=iEmployee?.value||'ALL',unit=emp==='ALL'?'ALL':personUnitById(emp);let defs=emp==='ALL'?kpiDefsUniqueAll():kpiDefsForUnit(unit);iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+defs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
+function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
+function kpiCell(row,k,month,id){if(k.baseIndex!=null){if(month!=='TTL'){let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};}return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};}if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
+function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
+function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
+function refreshKpiControls(){let cur=iKpi.value;iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
 function renderSetup(){renderMenuSetup();renderKpiSetup();let cfg=loadSetup(),baseUnits=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))],customUnits=cfg.customUnits||[],unitRows=[...baseUnits.filter(u=>!(cfg.deletedUnits||[]).includes(u)).map(u=>({key:u,original:u,name:cfg.units?.[u]?.display||u,order:cfg.units?.[u]?.order||999,custom:false})),...customUnits.map((u,i)=>({key:'__custom_unit_'+i,original:'',name:u.name||'',order:u.order||999,custom:true}))].sort((a,b)=>a.order-b.order||a.name.localeCompare(b.name,'th'));unitSetup.innerHTML='<tr><th>Order</th><th>Original Unit</th><th>Unit Name</th><th>Action</th></tr>'+unitRows.map((r,i)=>'<tr class="unitRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="suOrder" type="number" min="1" value="'+(r.order===999?i+1:r.order)+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="suName" value="'+esc(r.name)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let evals=evaluatorList();evaluatorSetup.innerHTML='<tr><th>Order</th><th>ชื่อผู้ประเมิน</th><th>Action</th></tr>'+evals.map((e,i)=>'<tr class="evalRow"><td><input class="svOrder" type="number" min="1" value="'+(i+1)+'" style="width:80px"></td><td><input class="svName" value="'+esc(e)+'" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');let people=allPeople().slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));employeeSetup.innerHTML='<tr><th>Order</th><th>ID</th><th>Name</th><th>Unit</th><th>ผู้ประเมิน</th><th>Action</th></tr>'+people.map((x,i)=>{let c=cfg.employees?.[x.id]||{},custom=!!x._custom;return '<tr class="empRow" data-custom="'+(custom?'1':'0')+'"><td><input class="seOrder" type="number" min="1" value="'+(c.order||i+1)+'" style="width:80px"></td><td><input class="seId" value="'+esc(x.id)+'" '+(custom?'':'readonly')+' style="width:130px"></td><td><input class="seName" value="'+esc(c.display||x.name)+'" style="width:95%"></td><td><select class="seUnit" style="min-width:220px">'+setupUnitOptions(c.unit||x.position)+'</select></td><td><select class="seEvaluator" style="min-width:220px">'+setupEvaluatorOptions(empCfg(x).evaluator)+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'employee\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>'}).join('');bindAutoSort(unitSetup,'.unitRow','.suOrder');bindAutoSort(evaluatorSetup,'.evalRow','.svOrder');bindAutoSort(employeeSetup,'.empRow','.seOrder')}
 function addUnitRow(){let n=document.querySelectorAll('.unitRow').length+1,tbody=unitSetup.tBodies[0]||unitSetup;let tr=document.createElement('tr');tr.className='unitRow';tr.dataset.key='__new_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="suOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="suName" placeholder="ชื่อหน่วยงาน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'unit\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(unitSetup,'.unitRow','.suOrder')}
 function addEvaluatorRow(){let n=document.querySelectorAll('.evalRow').length+1,tbody=evaluatorSetup.tBodies[0]||evaluatorSetup;let tr=document.createElement('tr');tr.className='evalRow';tr.innerHTML='<td><input class="svOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td><input class="svName" placeholder="ชื่อผู้ประเมิน" style="width:95%"></td><td><button type="button" onclick="deleteSetupRow(this,\'evaluator\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(evaluatorSetup,'.evalRow','.svOrder')}
 function addEmployeeRow(){let n=document.querySelectorAll('.empRow').length+1,tbody=employeeSetup.tBodies[0]||employeeSetup;let tr=document.createElement('tr');tr.className='empRow';tr.dataset.custom='1';tr.innerHTML='<td><input class="seOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td><input class="seId" placeholder="Employee ID" style="width:130px"></td><td><input class="seName" placeholder="ชื่อพนักงาน" style="width:95%"></td><td><select class="seUnit" style="min-width:220px">'+setupUnitOptions('')+'</select></td><td><select class="seEvaluator" style="min-width:220px">'+setupEvaluatorOptions('')+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'employee\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(employeeSetup,'.empRow','.seOrder')}
 function deleteSetupRow(btn,type){let tr=btn.closest('tr');if(!tr)return;let label=(tr.querySelector('.smName,.skName,.suName,.svName,.seName')?.value||tr.querySelector('.name')?.textContent||'รายการนี้').trim();if(!confirm('ต้องการลบ '+label+' ?'))return;if(type==='evaluator'){document.querySelectorAll('.seEvaluator').forEach(sel=>{if(sel.value===label)sel.value=''})}tr.remove();if(type==='unit')document.querySelectorAll('.seUnit').forEach(sel=>{[...sel.options].forEach(o=>{if(o.value===label)o.remove()})});saveSetup(true)}
-function saveSetup(silent=false){let old=loadSetup(),cfg={menus:{},customMenus:[],kpis:{},customKpis:[],units:{},employees:{},customUnits:[],customEmployees:[],evaluators:[],deletedMenus:[],deletedKpis:[],deletedUnits:[],deletedEmployees:[]};document.querySelectorAll('.menuRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.smName').value.trim(),order=+tr.querySelector('.smOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customMenus.push({key,display:name,order});else cfg.menus[key]={display:name||MENU_DEF.find(x=>x.key===key).original,order}});document.querySelectorAll('.kpiRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.skName').value.trim(),unit=tr.querySelector('.skUnit')?.value||'ALL',indicator=tr.querySelector('.skIndicator')?.value.trim()||'',weight=Math.max(0,Math.min(100,+tr.querySelector('.skWeight')?.value||0)),order=+tr.querySelector('.skOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customKpis.push({key,display:name,unit,indicator,weight,order});else cfg.kpis[key]={display:name,unit,indicator,weight,order}});document.querySelectorAll('.unitRow').forEach((tr,i)=>{let name=tr.querySelector('.suName').value.trim(),order=+tr.querySelector('.suOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customUnits.push({name,order});else cfg.units[tr.dataset.key]={display:name,order}});document.querySelectorAll('.evalRow').forEach((tr,i)=>{let name=tr.querySelector('.svName').value.trim(),order=+tr.querySelector('.svOrder').value||i+1;if(name)cfg.evaluators.push({name,order})});cfg.evaluators.sort((a,b)=>a.order-b.order);let seen=new Set();document.querySelectorAll('.empRow').forEach((tr,i)=>{let id=tr.querySelector('.seId').value.trim(),name=tr.querySelector('.seName').value.trim(),unit=tr.querySelector('.seUnit').value,evaluator=tr.querySelector('.seEvaluator')?.value||'',order=+tr.querySelector('.seOrder').value||i+1;if(!id||seen.has(id))return;seen.add(id);cfg.employees[id]={display:name||id,unit,evaluator,order};if(tr.dataset.custom==='1')cfg.customEmployees.push({id,name:name||id,position:unit,evaluator})});let menuKeys=new Set([...document.querySelectorAll('.menuRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedMenus=MENU_DEF.filter(d=>!menuKeys.has(d.key)).map(d=>d.key);let kpiKeys=new Set([...document.querySelectorAll('.kpiRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedKpis=BASE.kpis.map((_,i)=>'base_'+i).filter(k=>!kpiKeys.has(k));let unitKeys=new Set([...document.querySelectorAll('.unitRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));let baseUnitKeys=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))];cfg.deletedUnits=baseUnitKeys.filter(u=>!unitKeys.has(u));let empIds=new Set([...document.querySelectorAll('.empRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.querySelector('.seId').value.trim()));let baseEmpIds=new Set();months.forEach(m=>(D.data[m]||[]).forEach(x=>baseEmpIds.add(String(x.id))));cfg.deletedEmployees=[...baseEmpIds].filter(id=>!empIds.has(id));localStorage.setItem(setupStorageKey(),JSON.stringify(cfg));localStorage.removeItem('bdaPdcSetupV1');applyMenuSetup();refreshMatrixUnits();refreshHistoryUnits();fillHistoryEvaluators();fillHistoryEmployees();refreshEmployeeControls();refreshKpiControls();renderSetup();render();renderHistory();renderEmployee();renderKeyData();renderSaved();if(!silent)alert('บันทึก Setup ปี '+currentYear+' แล้ว')}
+function saveSetup(silent=false){let old=loadSetup(),cfg={menus:{},customMenus:[],kpis:{},customKpis:[],units:{},employees:{},customUnits:[],customEmployees:[],evaluators:[],deletedMenus:[],deletedKpis:[],deletedUnits:[],deletedEmployees:[]};document.querySelectorAll('.menuRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.smName').value.trim(),order=+tr.querySelector('.smOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customMenus.push({key,display:name,order});else cfg.menus[key]={display:name||MENU_DEF.find(x=>x.key===key).original,order}});document.querySelectorAll('.kpiRow').forEach((tr,i)=>{let key=tr.dataset.key,name=tr.querySelector('.skName').value.trim(),indicator=tr.querySelector('.skIndicator')?.value.trim()||'',weight=Math.max(0,Math.min(100,+tr.querySelector('.skWeight')?.value||0)),order=+tr.querySelector('.skOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customKpis.push({key,display:name,indicator,weight,order});else cfg.kpis[key]={display:name,indicator,weight,order}});document.querySelectorAll('.unitRow').forEach((tr,i)=>{let name=tr.querySelector('.suName').value.trim(),order=+tr.querySelector('.suOrder').value||i+1;if(!name)return;if(tr.dataset.custom==='1')cfg.customUnits.push({name,order});else cfg.units[tr.dataset.key]={display:name,order}});document.querySelectorAll('.evalRow').forEach((tr,i)=>{let name=tr.querySelector('.svName').value.trim(),order=+tr.querySelector('.svOrder').value||i+1;if(name)cfg.evaluators.push({name,order})});cfg.evaluators.sort((a,b)=>a.order-b.order);let seen=new Set();document.querySelectorAll('.empRow').forEach((tr,i)=>{let id=tr.querySelector('.seId').value.trim(),name=tr.querySelector('.seName').value.trim(),unit=tr.querySelector('.seUnit').value,evaluator=tr.querySelector('.seEvaluator')?.value||'',order=+tr.querySelector('.seOrder').value||i+1;if(!id||seen.has(id))return;seen.add(id);cfg.employees[id]={display:name||id,unit,evaluator,order};if(tr.dataset.custom==='1')cfg.customEmployees.push({id,name:name||id,position:unit,evaluator})});let menuKeys=new Set([...document.querySelectorAll('.menuRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedMenus=MENU_DEF.filter(d=>!menuKeys.has(d.key)).map(d=>d.key);let kpiKeys=new Set([...document.querySelectorAll('.kpiRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));cfg.deletedKpis=BASE.kpis.map((_,i)=>'base_'+i).filter(k=>!kpiKeys.has(k));let unitKeys=new Set([...document.querySelectorAll('.unitRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.dataset.key));let baseUnitKeys=[...new Set(months.flatMap(m=>(D.data[m]||[]).map(x=>x.position)).filter(Boolean))];cfg.deletedUnits=baseUnitKeys.filter(u=>!unitKeys.has(u));let empIds=new Set([...document.querySelectorAll('.empRow')].filter(tr=>tr.dataset.custom!=='1').map(tr=>tr.querySelector('.seId').value.trim()));let baseEmpIds=new Set();months.forEach(m=>(D.data[m]||[]).forEach(x=>baseEmpIds.add(String(x.id))));cfg.deletedEmployees=[...baseEmpIds].filter(id=>!empIds.has(id));localStorage.setItem(setupStorageKey(),JSON.stringify(cfg));localStorage.removeItem('bdaPdcSetupV1');applyMenuSetup();refreshMatrixUnits();refreshHistoryUnits();fillHistoryEvaluators();fillHistoryEmployees();refreshEmployeeControls();refreshKpiControls();renderSetup();render();renderHistory();renderEmployee();renderKeyData();renderSaved();if(!silent)alert('บันทึก Setup ปี '+currentYear+' แล้ว')}
 function refreshEmployeeControls(){let list=allPeople().sort((a,b)=>empCfg(a).order-empCfg(b).order);let keep=iEmployee.value;iEmployee.innerHTML='<option value="ALL">ทุกคน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(empCfg(x).display)+'</option>').join('');iEmployee.value=[...iEmployee.options].some(o=>o.value===keep)?keep:'ALL';employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(typeof employeeEvaluator!=='undefined'){let keep=employeeEvaluator.value||'ALL';employeeEvaluator.innerHTML='<option value="ALL">รวมผู้ประเมิน</option>'+evaluatorList().map(e=>'<option value="'+esc(e)+'">'+esc(e)+'</option>').join('');employeeEvaluator.value=[...employeeEvaluator.options].some(o=>o.value===keep)?keep:'ALL'}}
 function resetSetup(){if(confirm('Reset Setup เฉพาะปี '+currentYear+' กลับค่าเดิม?')){localStorage.removeItem(setupStorageKey());if(currentYear===2026)localStorage.removeItem('bdaPdcSetupV2');localStorage.removeItem('bdaPdcSetupV1');applyMenuSetup();applyEdits();syncYearUI();refreshHistoryUnits();fillHistoryEmployees();renderSetup();refreshEmployeeControls();refreshKpiControls();render();renderHistory();renderEmployee();renderKeyData();renderSaved()}}
 function dashboardStorageSnapshot(){let data={};for(let i=0;i<localStorage.length;i++){let k=localStorage.key(i);if(k&&k.startsWith('bdaPdc'))data[k]=localStorage.getItem(k)}return {app:'L5 BDA-PDC KPI Dashboard',format:'localStorage-backup-v1',exportedAt:new Date().toISOString(),items:data}}
@@ -519,7 +448,7 @@ function deleteKeyDataByIndex(i){
  if(document.getElementById('employeePage')?.style.display!=='none')renderEmployee();
 }
 function inputFilterChanged(){
- refreshKpiControls();
+ // All three dropdowns remain independent filters. Never rebuild KPI options here.
  renderSaved();
  // If a specific Month + Employee + KPI is selected, preload the latest saved record for convenient editing.
  if(iMonth.value!=='ALL'&&iEmployee.value!=='ALL'&&iKpi.value!=='ALL'){
@@ -531,59 +460,14 @@ function inputFilterChanged(){
 }
 
 function renderHistory(){
- applyEdits();
- let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
-
- let people=allPeople().filter(x=>
-   (unit==='ALL'||effectiveUnit(x)===unit) &&
-   (evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)
- );
- let selectedIds=id==='UNIT'?people.map(x=>String(x.id)):[String(id)];
- if(id!=='UNIT'&&!people.some(x=>String(x.id)===String(id)))selectedIds=[];
-
- // Use one KPI per name. Unit setup controls visibility only.
- let defs=unit==='ALL'?kpiDefsUniqueAll():kpiDefsForUnit(unit);
- const edits=loadEdits();
-
- function pctFor(empId,k,m){
-   // 1) New/edited score wins only when it contains a real percentage.
-   let e=edits.slice().reverse().find(x=>
-     String(x.id)===String(empId) && x.month===m &&
-     x.pct!=null && Number.isFinite(Number(x.pct)) &&
-     (
-       x.kpiKey===k.key ||
-       x.kpi===k.display ||
-       x.kpi===k.original ||
-       (k.baseIndex!=null && x.kpiKey==='base_'+k.baseIndex)
-     )
-   );
-   if(e)return Number(e.pct);
-
-   // 2) Always recover the original KPI score directly from BASE.
-   // Do NOT depend on the new unit KPI key.
-   let bi=k.baseIndex;
-   if(bi==null){
-     bi=BASE.kpis.findIndex(n=>
-       String(n).trim().toLowerCase()===String(k.display||k.original||'').trim().toLowerCase()
-     );
-   }
-   if(bi>=0){
-     let br=(BASE.data?.[m]||[]).find(r=>String(r.id)===String(empId));
-     let v=br?.kpis?.[bi]?.pct;
-     if(v!=null&&Number.isFinite(Number(v)))return Number(v);
-   }
-   return null;
- }
-
- let series=defs.map(k=>({
-   name:k.display,
-   vals:months.map(m=>{
-     let vals=selectedIds.map(empId=>pctFor(empId,k,m)).filter(Number.isFinite);
-     return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
-   })
- }));
-
- drawHistory(series);drawYear(series);
+ applyEdits(); let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
+ let selectedIds=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
+ if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||(px.evaluator||'').trim()!==evaluator)selectedIds=[];}
+ let series=kpiDefs().map(k=>({name:k.display,vals:months.map(m=>{
+   let vals=(D.data[m]||[]).filter(r=>selectedIds.includes(r.id)).map(r=>kpiCell(r,k,m,r.id)?.pct).filter(v=>v!=null);
+   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+ })}));
+ drawHistory(series); drawYear(series);
 }
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380,dprOverride=null){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
@@ -630,7 +514,7 @@ function drawYear(series){
 function findEmployee(){let q=employeeSearch.value.trim().toLowerCase(),list=allPeople(),hit=list.filter(x=>!q||x.id.toLowerCase().includes(q)||x.name.toLowerCase().includes(q));employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+hit.map(x=>'<option value="'+x.id+'">'+esc(x.id+' - '+x.name)+'</option>').join('');if(hit.length){employeeSelect.value=hit.length===list.length?'ALL':hit[0].id;renderEmployee()}else employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>'}
 function clearEmployeeSearch(){employeeSearch.value='';let list=allPeople().sort((a,b)=>empCfg(a).order-empCfg(b).order);employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(list.length){employeeSelect.value='ALL';renderEmployee()}else{employeeSelect.innerHTML='<option value="">ไม่มีพนักงาน</option>';employeeDetail.innerHTML='';}employeeSearch.focus();}
 function employeeEvaluatorChanged(){let ev=employeeEvaluator.value||'ALL',keep=employeeSelect.value;let list=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev).sort((a,b)=>empCfg(a).order-empCfg(b).order);employeeSelect.innerHTML='<option value="ALL">รวมพนักงาน</option>'+list.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');if(keep==='ALL'||list.some(x=>x.id===keep))employeeSelect.value=keep;else employeeSelect.value='ALL';renderEmployee()}
-function renderEmployee(){applyEdits();let id=employeeSelect.value||'ALL',ev=employeeEvaluator?.value||'ALL';if(id==='ALL'){let people=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev);let selectedUnits=new Set(people.map(x=>personUnitById(x.id)));let defs=kpiDefsUniqueAll();if(!people.length){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}employeeDetail.innerHTML='<div class="detailhead"><div><small>พนักงาน</small><b>รวมพนักงาน '+people.length+' คน</b></div><div><small>ผู้ประเมิน</small><b>'+(ev==='ALL'?'รวมผู้ประเมิน '+new Set(people.map(x=>effectiveEvaluator(x).trim()).filter(Boolean)).size+' คน':esc(ev))+'</b></div><div><small>ปี</small><b>'+currentYear+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>'<tr><th>'+m+'</th>'+defs.map(k=>{let vals=[];people.forEach(x=>{let r=(D.data[m]||[]).find(z=>z.id===x.id)||x,c=kpiCell(r,k,m,x.id);if(c&&Number.isFinite(c.pct))vals.push(c.pct)});let pct=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;return '<td class="'+cls(pct)+'">'+fmt(pct)+'</td>'}).join('')+'</tr>').join('')+'</table></div>';return;}let x=allPeople().find(r=>r.id===id);if(!x){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}let defs=kpiDefsForUnit(personUnitById(id));employeeDetail.innerHTML='<div class="detailhead"><div><small>ID</small><b>'+esc(x.id)+'</b></div><div><small>ชื่อพนักงาน</small><b>'+esc(empCfg(x).display)+'</b></div><div><small>ตำแหน่ง</small><b>'+esc(x.position)+'</b></div><div><small>ผู้ประเมิน</small><b>'+esc(effectiveEvaluator(x))+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>{let r=(D.data[m]||[]).find(z=>z.id===id)||x;return '<tr><th>'+m+'</th>'+defs.map(k=>{let c=kpiCell(r,k,m,id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
+function renderEmployee(){applyEdits();let id=employeeSelect.value||'ALL',defs=kpiDefs(),ev=employeeEvaluator?.value||'ALL';if(id==='ALL'){let people=allPeople().filter(x=>ev==='ALL'||effectiveEvaluator(x).trim()===ev);if(!people.length){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}employeeDetail.innerHTML='<div class="detailhead"><div><small>พนักงาน</small><b>รวมพนักงาน '+people.length+' คน</b></div><div><small>ผู้ประเมิน</small><b>'+(ev==='ALL'?'รวมผู้ประเมิน '+new Set(people.map(x=>effectiveEvaluator(x).trim()).filter(Boolean)).size+' คน':esc(ev))+'</b></div><div><small>ปี</small><b>'+currentYear+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>'<tr><th>'+m+'</th>'+defs.map(k=>{let vals=[];people.forEach(x=>{let r=(D.data[m]||[]).find(z=>z.id===x.id)||x,c=kpiCell(r,k,m,x.id);if(c&&Number.isFinite(c.pct))vals.push(c.pct)});let pct=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;return '<td class="'+cls(pct)+'">'+fmt(pct)+'</td>'}).join('')+'</tr>').join('')+'</table></div>';return;}let x=allPeople().find(r=>r.id===id);if(!x){employeeDetail.innerHTML='<div class="none">ไม่พบพนักงาน</div>';return;}employeeDetail.innerHTML='<div class="detailhead"><div><small>ID</small><b>'+esc(x.id)+'</b></div><div><small>ชื่อพนักงาน</small><b>'+esc(empCfg(x).display)+'</b></div><div><small>ตำแหน่ง</small><b>'+esc(x.position)+'</b></div><div><small>ผู้ประเมิน</small><b>'+esc(effectiveEvaluator(x))+'</b></div></div><div class="scroll"><table><tr><th>Month</th>'+defs.map(k=>'<th>'+esc(k.display)+'</th>').join('')+'</tr>'+months.map(m=>{let r=(D.data[m]||[]).find(z=>z.id===id)||x;return '<tr><th>'+m+'</th>'+defs.map(k=>{let c=kpiCell(r,k,m,id);return '<td class="'+cls(c?.pct)+'">'+fmt(c?.pct)+'</td>'}).join('')+'</tr>'}).join('')+'</table></div>'}
 function calcPct(){
  let t=parseFloat(iTarget.value),a=parseFloat(iActual.value),p=null;
  if(isFinite(t)&&isFinite(a)&&t>0&&a>=0){p=a/t*100;p=Math.min(p,100)}
