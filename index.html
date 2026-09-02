@@ -473,7 +473,16 @@ function inputFilterChanged(){
 function renderHistory(){
  applyEdits();
  let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
- let people=allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator));
+ // Build the History employee pool from BASE for 2026 so Unit filtering cannot lose legacy KPI data.
+ // Setup names/evaluators are still respected, but the original BASE position is the reliable Unit source.
+ let basePeopleMap=new Map();
+ months.forEach(m=>(BASE.data?.[m]||[]).forEach(r=>{let rid=String(r.id);if(!basePeopleMap.has(rid))basePeopleMap.set(rid,r)}));
+ let people=(currentYear===2026?[...basePeopleMap.values()]:allPeople()).filter(x=>{
+   let xid=String(x.id), live=allPeople().find(p=>String(p.id)===xid)||x;
+   let personUnit=currentYear===2026?(x.position||effectiveUnit(live)):effectiveUnit(live);
+   let personEvaluator=effectiveEvaluator(live).trim();
+   return (unit==='ALL'||personUnit===unit)&&(evaluator==='ALL'||personEvaluator===evaluator);
+ });
  let selectedIds=id==='UNIT'?people.map(x=>String(x.id)):[String(id)];
  if(id!=='UNIT'&&!people.some(x=>String(x.id)===String(id)))selectedIds=[];
  const edits=loadEdits();
