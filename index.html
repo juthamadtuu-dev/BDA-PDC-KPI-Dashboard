@@ -520,7 +520,10 @@ function renderHistory(){
    if(latest && latest.pct!=null) return Number(latest.pct);
 
    if(k.baseIndex!=null){
-     const raw=(BASE.data[m]||[]).find(r=>String(r.id)===String(empId));
+     // Use the same working dataset as Matrix / Employee Detail.
+     // applyEdits() has already merged BASE + saved edits into D, so the
+     // history chart cannot lose months when only some months have edits.
+     const raw=(D.data[m]||[]).find(r=>String(r.id)===String(empId));
      const v=raw?.kpis?.[k.baseIndex]?.pct;
      return v==null?null:Number(v);
    }
