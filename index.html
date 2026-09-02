@@ -347,7 +347,40 @@ function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.k
 function kpiAppliesToUnit(k,unit){return !k.unit||k.unit==='ALL'||k.unit===unit}
 function kpiUnitOptions(selected){return '<option value="ALL"'+((!selected||selected==='ALL')?' selected':'')+'>ทุกหน่วยงาน</option>'+historyUnits().map(u=>'<option value="'+esc(u)+'"'+(u===selected?' selected':'')+'>'+esc(unitCfg(u).display)+'</option>').join('')}
 function personUnitById(id){let x=allPeople().find(p=>String(p.id)===String(id));return x?effectiveUnit(x):''}
-function kpiCell(row,k,month,id){let pu=personUnitById(id)||row?.position||'';if(!kpiAppliesToUnit(k,pu))return {ttl:null,actual:null,pct:null};if(k.baseIndex!=null){if(month!=='TTL'){let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};}return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};}if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
+function kpiCell(row,k,month,id){
+ let pu=personUnitById(id)||row?.position||'';
+ if(!kpiAppliesToUnit(k,pu))return {ttl:null,actual:null,pct:null};
+
+ // คะแนนเก่าอาจเก็บ base_0/base_2 หรือชื่อ KPI เดิมไว้
+ // หลังเพิ่มหน่วยงาน ห้ามบังคับ match เฉพาะ key ใหม่
+ const sameKpi=e=>e&&(
+   e.kpiKey===k.key ||
+   e.kpi===k.display ||
+   e.kpi===k.original ||
+   (k.baseIndex!=null && e.kpiKey==='base_'+k.baseIndex)
+ );
+
+ if(month!=='TTL'){
+   let e=loadEdits().slice().reverse().find(x=>x.month===month&&String(x.id)===String(id)&&sameKpi(x));
+   if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};
+   if(k.baseIndex!=null)return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
+   return {ttl:null,actual:null,pct:null};
+ }
+
+ let es=loadEdits().filter(x=>String(x.id)===String(id)&&sameKpi(x)&&x.pct!=null);
+ if(es.length){
+   let ts=es.map(x=>+x.target).filter(Number.isFinite),
+       as=es.map(x=>+x.actual).filter(Number.isFinite),
+       ps=es.map(x=>+x.pct).filter(Number.isFinite);
+   return {
+     ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,
+     actual:as.length?as.reduce((a,b)=>a+b,0):null,
+     pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null
+   };
+ }
+ if(k.baseIndex!=null)return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};
+ return {ttl:null,actual:null,pct:null};
+}
 function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>หน่วยงาน</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions(r.unit)+'</select></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><select class="skUnit" style="min-width:220px">'+kpiUnitOptions('ALL')+'</select></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><button type="button" onclick="deleteSetupRow(this,&quot;kpi&quot;)" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function refreshKpiControls(){let cur=iKpi.value,emp=iEmployee?.value||'ALL',unit=emp==='ALL'?'ALL':personUnitById(emp);let defs=kpiDefs().filter(k=>emp==='ALL'||kpiAppliesToUnit(k,unit));iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+defs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
