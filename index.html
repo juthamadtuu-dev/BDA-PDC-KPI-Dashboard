@@ -500,7 +500,12 @@ function renderHistory(){
  let selectedIds=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
  if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||(px.evaluator||'').trim()!==evaluator)selectedIds=[];}
  let selectedUnits=new Set(selectedIds.map(personUnitById));let series=kpiDefs().filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit)).map(k=>({name:k.display,vals:months.map(m=>{
-   let vals=(D.data[m]||[]).filter(r=>selectedIds.includes(r.id)).map(r=>kpiCell(r,k,m,r.id)?.pct).filter(v=>v!=null);
+   let vals=selectedIds.map(empId=>{
+     let r=(D.data[m]||[]).find(x=>String(x.id)===String(empId))
+           || allPeople().find(x=>String(x.id)===String(empId))
+           || {id:String(empId),kpis:[]};
+     return kpiCell(r,k,m,empId)?.pct;
+   }).filter(v=>v!=null);
    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
  })}));
  drawHistory(series); drawYear(series);
