@@ -471,14 +471,30 @@ function inputFilterChanged(){
 }
 
 function renderHistory(){
- applyEdits(); let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
- let selectedIds=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
- if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||(px.evaluator||'').trim()!==evaluator)selectedIds=[];}
- let series=kpiDefsForUnit(unit).map(k=>({name:k.display,vals:months.map(m=>{
-   let vals=(D.data[m]||[]).filter(r=>selectedIds.includes(r.id)).map(r=>kpiCell(r,k,m,r.id)?.pct).filter(v=>v!=null);
+ applyEdits();
+ let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
+ let people=allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator));
+ let selectedIds=id==='UNIT'?people.map(x=>String(x.id)):[String(id)];
+ if(id!=='UNIT'&&!people.some(x=>String(x.id)===String(id)))selectedIds=[];
+ const edits=loadEdits();
+ function historyPct(empId,k,m){
+   const keys=new Set([k.key,...(k._logicalKeys||[])]);
+   if(k.baseIndex!=null)keys.add('base_'+k.baseIndex);
+   let e=edits.slice().reverse().find(x=>String(x.id)===String(empId)&&x.month===m&&x.pct!=null&&Number.isFinite(Number(x.pct))&&((x.kpiKey&&keys.has(x.kpiKey))||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));
+   if(e)return Number(e.pct);
+   if(k.baseIndex!=null){
+     let br=(BASE.data?.[m]||[]).find(r=>String(r.id)===String(empId));
+     let v=br?.kpis?.[k.baseIndex]?.pct;
+     if(v!=null&&Number.isFinite(Number(v)))return Number(v);
+   }
+   return null;
+ }
+ let defs=kpiDefsForUnit(unit);
+ let series=defs.map(k=>({name:k.display,vals:months.map(m=>{
+   let vals=selectedIds.map(empId=>historyPct(empId,k,m)).filter(Number.isFinite);
    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
  })}));
- drawHistory(series); drawYear(series);
+ drawHistory(series);drawYear(series);
 }
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
 function setupCanvas(c,h=380,dprOverride=null){let box=c.parentElement,r=box.getBoundingClientRect(),dpr=window.devicePixelRatio||1,W=Math.max(320,r.width-28),H=h;c.width=W*dpr;c.height=H*dpr;let ctx=c.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);return {ctx,W,H}}
