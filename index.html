@@ -498,16 +498,42 @@ function inputFilterChanged(){
 function renderHistory(){
  applyEdits(); let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
  let selectedIds=id==='UNIT'?allPeople().filter(x=>(unit==='ALL'||effectiveUnit(x)===unit)&&(evaluator==='ALL'||effectiveEvaluator(x).trim()===evaluator)).map(x=>x.id):[id];
- if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||(px.evaluator||'').trim()!==evaluator)selectedIds=[];}
- let selectedUnits=new Set(selectedIds.map(personUnitById));let series=kpiDefs().filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit)).map(k=>({name:k.display,vals:months.map(m=>{
-   let vals=selectedIds.map(empId=>{
-     let r=(D.data[m]||[]).find(x=>String(x.id)===String(empId))
-           || allPeople().find(x=>String(x.id)===String(empId))
-           || {id:String(empId),kpis:[]};
-     return kpiCell(r,k,m,empId)?.pct;
-   }).filter(v=>v!=null);
-   return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
- })}));
+ if(id!=='UNIT'&&evaluator!=='ALL'){let px=allPeople().find(x=>x.id===id);if(!px||effectiveEvaluator(px).trim()!==evaluator)selectedIds=[];}
+
+ // กราฟต้องอ่านคะแนนเดิมจาก BASE + คะแนนที่แก้/กรอกใหม่จาก localStorage
+ // โดยคะแนนใหม่ override คะแนนเดิมเฉพาะ Employee + Month + KPI เดียวกัน
+ const edits=loadEdits();
+ const selectedUnits=new Set(selectedIds.map(personUnitById));
+ const defs=kpiDefs().filter(k=>k.unit==='ALL'||selectedUnits.has(k.unit));
+
+ function historyPct(empId,k,m){
+   const latest=edits.slice().reverse().find(e=>
+     String(e.id)===String(empId) &&
+     e.month===m &&
+     (
+       e.kpiKey===k.key ||
+       (k.baseIndex!=null && e.kpiKey==='base_'+k.baseIndex) ||
+       e.kpi===k.display ||
+       e.kpi===k.original
+     )
+   );
+   if(latest && latest.pct!=null) return Number(latest.pct);
+
+   if(k.baseIndex!=null){
+     const raw=(BASE.data[m]||[]).find(r=>String(r.id)===String(empId));
+     const v=raw?.kpis?.[k.baseIndex]?.pct;
+     return v==null?null:Number(v);
+   }
+   return null;
+ }
+
+ let series=defs.map(k=>({
+   name:k.display,
+   vals:months.map(m=>{
+     const vals=selectedIds.map(empId=>historyPct(empId,k,m)).filter(v=>Number.isFinite(v));
+     return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+   })
+ }));
  drawHistory(series); drawYear(series);
 }
 const chartColors=['#2563eb','#16a34a','#f59e0b','#dc2626','#808080'];
