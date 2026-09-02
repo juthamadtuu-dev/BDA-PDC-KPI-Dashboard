@@ -473,34 +473,26 @@ function inputFilterChanged(){
 function renderHistory(){
  applyEdits();
  let unit=hUnit.value||'ALL', id=hEmployee.value||'UNIT', evaluator=hEvaluator.value||'ALL';
- // Build the History employee pool from BASE for 2026 so Unit filtering cannot lose legacy KPI data.
- // Setup names/evaluators are still respected, but the original BASE position is the reliable Unit source.
- let basePeopleMap=new Map();
- months.forEach(m=>(BASE.data?.[m]||[]).forEach(r=>{let rid=String(r.id);if(!basePeopleMap.has(rid))basePeopleMap.set(rid,r)}));
- let people=(currentYear===2026?[...basePeopleMap.values()]:allPeople()).filter(x=>{
-   let xid=String(x.id), live=allPeople().find(p=>String(p.id)===xid)||x;
-   let personUnit=currentYear===2026?(x.position||effectiveUnit(live)):effectiveUnit(live);
-   let personEvaluator=effectiveEvaluator(live).trim();
-   return (unit==='ALL'||personUnit===unit)&&(evaluator==='ALL'||personEvaluator===evaluator);
+ let rows=keyDataRows();
+ // Use the same source that Key Data displays. This guarantees that data visible in Key Data
+ // is also available to KPIs Summary instead of relying on a separate BASE/custom-key path.
+ let people=allPeople().filter(p=>{
+   let pu=effectiveUnit(p), pe=effectiveEvaluator(p).trim();
+   return (unit==='ALL'||pu===unit)&&(evaluator==='ALL'||pe===evaluator);
  });
- let selectedIds=id==='UNIT'?people.map(x=>String(x.id)):[String(id)];
- if(id!=='UNIT'&&!people.some(x=>String(x.id)===String(id)))selectedIds=[];
- const edits=loadEdits();
- function historyPct(empId,k,m){
-   const keys=new Set([k.key,...(k._logicalKeys||[])]);
-   if(k.baseIndex!=null)keys.add('base_'+k.baseIndex);
-   let e=edits.slice().reverse().find(x=>String(x.id)===String(empId)&&x.month===m&&x.pct!=null&&Number.isFinite(Number(x.pct))&&((x.kpiKey&&keys.has(x.kpiKey))||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));
-   if(e)return Number(e.pct);
-   if(k.baseIndex!=null){
-     let br=(BASE.data?.[m]||[]).find(r=>String(r.id)===String(empId));
-     let v=br?.kpis?.[k.baseIndex]?.pct;
-     if(v!=null&&Number.isFinite(Number(v)))return Number(v);
-   }
-   return null;
- }
+ let selectedIds=id==='UNIT'?people.map(p=>String(p.id)):[String(id)];
+ if(id!=='UNIT'&&!people.some(p=>String(p.id)===String(id)))selectedIds=[];
+ let selectedSet=new Set(selectedIds);
  let defs=kpiDefsForUnit(unit);
  let series=defs.map(k=>({name:k.display,vals:months.map(m=>{
-   let vals=selectedIds.map(empId=>historyPct(empId,k,m)).filter(Number.isFinite);
+   let logicalNames=new Set([k.display,k.original].filter(Boolean).map(x=>String(x).trim().toLowerCase()));
+   let logicalKeys=new Set([k.key,...(k._logicalKeys||[])]);
+   if(k.baseIndex!=null)logicalKeys.add('base_'+k.baseIndex);
+   let rs=rows.filter(r=>r.month===m&&selectedSet.has(String(r.id))&&(
+     (r.kpiKey&&logicalKeys.has(r.kpiKey)) || logicalNames.has(String(r.kpi||'').trim().toLowerCase())
+   ));
+   // one value per employee/month/KPI; keyDataRows already resolves base vs edited rows
+   let vals=rs.map(r=>Number(r.pct)).filter(Number.isFinite);
    return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
  })}));
  drawHistory(series);drawYear(series);
