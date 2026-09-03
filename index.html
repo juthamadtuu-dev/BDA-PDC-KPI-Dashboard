@@ -98,6 +98,12 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 #statusDetail td.name{white-space:normal;min-width:180px}
 
 #publishBtn{margin-right:8px;background:#eaf3ff;color:var(--navy);border:1px solid #b9d4ef;border-radius:5px;padding:10px 14px;font-weight:800;cursor:pointer;box-shadow:0 1px 2px #0001}#publishBtn:hover{background:#dcecff}
+
+/* KPI Setup: keep weight % and delete icon/text on one line */
+#kpiSetup td:nth-child(5),#kpiSetup td:nth-child(7){white-space:nowrap}
+#kpiSetup td:nth-child(5){vertical-align:middle}
+#kpiSetup .skWeight{display:inline-block;vertical-align:middle;margin-right:4px}
+#kpiSetup td:nth-child(7) button{display:inline-flex;align-items:center;justify-content:center;gap:5px;white-space:nowrap}
 </style></head>
 <body>
 <aside>
@@ -161,10 +167,10 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <label>Month<select id="iMonth" onchange="inputFilterChanged()"><option value="ALL">ทุกเดือน</option><option value="JAN'26">JAN'26</option><option value="FEB'26">FEB'26</option><option value="MAR'26">MAR'26</option><option value="APR'26">APR'26</option><option value="MAY'26">MAY'26</option><option value="JUN'26">JUN'26</option><option value="JUL'26">JUL'26</option><option value="AUG'26">AUG'26</option><option value="SEP'26">SEP'26</option><option value="OCT'26">OCT'26</option><option value="NOV'26">NOV'26</option><option value="DEC'26">DEC'26</option></select></label>
 <label>Employee<select id="iEmployee" onchange="inputFilterChanged()"><option value="ALL">ทุกคน</option><option value="160150090">น.ส.ณัฐฌา คามรักษ์</option><option value="160160082">น.ส.ดารณี เผ่าไทย</option><option value="160250027">น.ส.มัณฑนา สุดเพาะ</option><option value="160180145">น.ส.กนิษฐา พิมพาศรี</option><option value="160220050">น.ส.ณัฐกฤตา คงอนัน</option><option value="160160077">น.ส.รัชฎาพร ปราณีทรัพย์</option><option value="160220054">นายรัฐพงษ์ บุญมาดี</option><option value="160160019">น.ส.วารินทร์ ภูสีคุณ</option><option value="160210058">น.ส.ณัฐรัตน์ อุษณะอำไพพงษ์</option><option value="160160143">นางอลิษา เชินเฟลด์</option><option value="160170050">นางนิภาพัฒน์ นาคะประเวศน์</option><option value="160170037">น.ส.ดารารัตน์ พวงเดช</option><option value="160210013">นายธนพล แก้วสำโรง</option><option value="160220070">นายเอื้ออังกูร อู่สุวรรณทิม</option><option value="160220091">นายบุญญินท์ อินทราภิบาล</option></select></label>
 <label>KPI<select id="iKpi" onchange="inputFilterChanged()"><option value="ALL">ทุก KPI</option><option value="base_0">SLA Bug Service</option><option value="base_1">Data Accuracy</option><option value="base_2">Training Evaluate</option><option value="base_3">Bug Service Survey</option><option value="base_4">MDM Tools / Dashboard</option></select></label>
-<label>Target<input id="iTarget" type="number" step="any" min="0" placeholder="เช่น 20"></label>
-<label>Actual<input id="iActual" type="number" step="any" min="0" placeholder="เช่น 18"></label>
+<label>Target<input id="iTarget" type="number" step="any" min="0" placeholder="เช่น 20" oninput="calcPct()"></label>
+<label>Actual<input id="iActual" type="number" step="any" min="0" placeholder="เช่น 18" oninput="calcPct()"></label>
 <label>Calculation<select id="iCalc"><option value="higher">Actual ÷ Target × 100</option></select></label>
-<label>Result %<div id="pctPreview">80.0%</div></label>
+<label>Result %<div id="pctPreview">-</div></label>
 <label style="grid-column:span 2">Remark<textarea id="iRemark" rows="3"></textarea></label>
 </div>
 <div class="actions"><button id="saveScoreBtn" onclick="saveScore()">💾 Save Score</button><button onclick="clearScore()" style="background:#667085">Clear</button></div>
@@ -617,6 +623,8 @@ function saveScore(){
  if(document.getElementById('employeePage')?.classList.contains('active')) renderEmployee();
  // Stay on Input Score. The table below refreshes immediately; Key Data reads the same saved dataset.
  renderSaved();
+ // Reset score-entry fields after a successful save so Result % does not stay on the previous value.
+ iTarget.value=''; iActual.value=''; iRemark.value=''; pctPreview.textContent='-';
  alert((wasEdit?'แก้ไขคะแนนแล้ว ':'บันทึกแล้ว ')+fmt(p));
 }
 function clearScore(){editingScoreIndex=null;saveScoreBtn.innerHTML='💾 Save Score';iTarget.value='';iActual.value='';iRemark.value='';calcPct()}
@@ -716,12 +724,36 @@ function exportDataUpdate(){
 function loadPptxGenJS(){return new Promise((resolve,reject)=>{if(window.PptxGenJS)return resolve();let s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js';s.onload=resolve;s.onerror=()=>reject(new Error('ไม่สามารถโหลด PowerPoint library ได้ กรุณาตรวจสอบ Internet'));document.head.appendChild(s)})}
 function pptSeriesFor(unit='ALL'){
  applyEdits();
- let ids=allPeople().filter(x=>unit==='ALL'||effectiveUnit(x)===unit).map(x=>x.id);
- return {unit,ids,series:kpiDefsForUnit(unit).map(k=>({name:k.display,vals:months.map(m=>{let v=(D.data[m]||[]).filter(r=>ids.includes(r.id)).map(r=>kpiCell(r,k,m,r.id)?.pct).filter(x=>x!=null&&Number.isFinite(x));return v.length?v.reduce((a,b)=>a+b,0)/v.length:null})}))};
+ const people=allPeople().filter(x=>unit==='ALL'||effectiveUnit(x)===unit);
+ const ids=new Set(people.map(x=>String(x.id)));
+ const rows=keyDataRows();
+ const allDefs=kpiDefs();
+ const norm=v=>String(v||'').trim().toLowerCase();
+ const defs=kpiDefsForUnit(unit);
+ const series=defs.map(k=>{
+   const names=new Set([k.display,k.original].filter(Boolean).map(norm));
+   const sameNameBase=allDefs.find(d=>d.baseIndex!=null&&(names.has(norm(d.display))||names.has(norm(d.original))));
+   if(sameNameBase){names.add(norm(sameNameBase.display));names.add(norm(sameNameBase.original));}
+   const keys=new Set([k.key,...(k._logicalKeys||[])].filter(Boolean));
+   if(k.baseIndex!=null)keys.add('base_'+k.baseIndex);
+   if(sameNameBase)keys.add(sameNameBase.key);
+   return {name:k.display,vals:months.map(m=>{
+     const byEmp=new Map();
+     rows.forEach(r=>{
+       if(r.month!==m||!ids.has(String(r.id)))return;
+       const matched=(r.kpiKey&&keys.has(r.kpiKey))||names.has(norm(r.kpi));
+       const v=Number(r.pct);
+       if(matched&&Number.isFinite(v))byEmp.set(String(r.id),v);
+     });
+     const vals=[...byEmp.values()];
+     return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+   })};
+ });
+ return {unit,ids:[...ids],series};
 }
 async function generatePowerPoint(){
  let btn=document.getElementById('pptBtn');try{btn.disabled=true;btn.textContent='⏳ Generating...';await loadPptxGenJS();
- let pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='L5 BDA-PDC';pptx.subject='KPIs Dashboard';pptx.title='L5 BDA-PDC KPIs Dashboard '+currentYear;pptx.company='BDA-PDC';pptx.lang='th-TH';pptx.theme={headFontFace:'Tahoma',bodyFontFace:'Tahoma',lang:'th-TH'};
+ let pptx=new PptxGenJS();pptx.layout='LAYOUT_WIDE';pptx.author='L5 BPM';pptx.subject='KPIs Dashboard';pptx.title='L5 BPM KPIs Dashboard '+currentYear;pptx.company='BPM';pptx.lang='th-TH';pptx.theme={headFontFace:'Tahoma',bodyFontFace:'Tahoma',lang:'th-TH'};
  const navy='17446D',blue='1F5A91',text='24364B',muted='667085',white='FFFFFF';
  const cardColors=['2F6BDE','23A55A','F59E0B','D92D20','7A7A7A'];
  function title(slide,t,sub=''){slide.background={color:'F7FAFD'};slide.addShape(pptx.ShapeType.rect,{x:0,y:0,w:13.333,h:.68,fill:{color:navy},line:{color:navy}});slide.addText(t,{x:.45,y:.15,w:8.7,h:.3,fontFace:'Tahoma',fontSize:22,bold:true,color:white,margin:0});if(sub)slide.addText(sub,{x:8.2,y:.19,w:4.65,h:.22,fontFace:'Tahoma',fontSize:10,color:'DCEBFA',align:'right',margin:0,fit:'shrink'});}
@@ -754,7 +786,7 @@ async function generatePowerPoint(){
  }
  function addDetail(scope,defs){let s=pptx.addSlide();title(s,scope==='ALL'?'KPIs Performance Detail — Overall':'KPIs Performance Detail — '+scope,'Year '+currentYear);let rows=[['KPI','Annual Avg','Max','Min','Status']];defs.forEach(d=>{let vals=d.vals.filter(v=>v!=null&&Number.isFinite(v)),avg=vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null,max=vals.length?Math.max(...vals):null,min=vals.length?Math.min(...vals):null;rows.push([d.name,avg==null?'-':fmt(avg),max==null?'-':fmt(max),min==null?'-':fmt(min),avg==null?'No Data':avg>=95?'Achieve':'Follow-up'])});s.addTable(rows,{x:.65,y:1.3,w:12,h:4.7,border:{type:'solid',color:'D0D5DD',pt:1},fontFace:'Tahoma',fontSize:14,color:text,margin:.09,rowH:.55,fill:'FFFFFF',bold:false,autoFit:false,colW:[4.4,2.0,1.8,1.8,2.0]});}
  // Cover
- let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BDA-PDC KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const _remoteVersion=localStorage.getItem('bdaPdcRemoteDataVersion');
+ let s=pptx.addSlide();s.background={color:navy};s.addText('L5 BPM KPIs',{x:.8,y:1.55,w:11.7,h:.55,fontFace:'Tahoma',fontSize:32,bold:true,color:white,align:'center',margin:0});s.addText('Dashboard Presentation',{x:.8,y:2.25,w:11.7,h:.55,fontFace:'Tahoma',fontSize:28,bold:true,color:'A9D2FF',align:'center',margin:0});s.addText('YEAR '+currentYear,{x:.8,y:3.25,w:11.7,h:.45,fontFace:'Tahoma',fontSize:20,bold:true,color:white,align:'center',margin:0});const _remoteVersion=localStorage.getItem('bdaPdcRemoteDataVersion');
 let dataAsOf=localStorage.getItem('bdaPdcPublishedDate')||'';
 if(_remoteVersion){
   const _d=new Date(_remoteVersion);
@@ -772,7 +804,7 @@ s.addText('Data as of: '+dataAsOf,{x:.8,y:3.85,w:11.7,h:.34,fontFace:'Tahoma',fo
  // Then each unit
  const units=[...new Set(allPeople().map(x=>effectiveUnit(x)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'th'));
  units.forEach(unit=>{let p=pptSeriesFor(unit),pp=allPeople().filter(x=>effectiveUnit(x)===unit);addSummary(unit,p.series,pp);addTrend(unit,p.series);addDetail(unit,p.series);});
- await pptx.writeFile({fileName:'L5_BDA_PDC_KPIs_Presentation_Overall_and_Units_'+currentYear+'.pptx'});
+ await pptx.writeFile({fileName:'L5_BPM_KPIs_Presentation_Overall_and_Units_'+currentYear+'.pptx'});
  }catch(e){console.error(e);alert('Generate PowerPoint ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false;btn.textContent='📊 PPT Present'}}
 
 </script></body></html>
