@@ -762,6 +762,26 @@ function pptSeriesFor(unit='ALL'){
  });
  return {unit,ids:[...ids],series};
 }
+function employeeKpiPctFromKeyData(rows, empId, k, month){
+  const norm=v=>String(v??'').trim().toLowerCase();
+  const names=new Set([k?.display,k?.original].filter(Boolean).map(norm));
+  const allDefs=kpiDefs();
+  const sameNameBase=allDefs.find(d=>d.baseIndex!=null && (names.has(norm(d.display))||names.has(norm(d.original))));
+  if(sameNameBase){
+    names.add(norm(sameNameBase.display));
+    names.add(norm(sameNameBase.original));
+  }
+  const keys=new Set([k?.key,...(k?._logicalKeys||[])].filter(Boolean).map(String));
+  if(k?.baseIndex!=null) keys.add('base_'+k.baseIndex);
+  if(sameNameBase?.key) keys.add(String(sameNameBase.key));
+  const matches=(rows||[]).filter(r=>
+    String(r.id)===String(empId) && r.month===month &&
+    ((r.kpiKey && keys.has(String(r.kpiKey))) || names.has(norm(r.kpi)))
+  );
+  const vals=matches.map(r=>Number(r.pct)).filter(Number.isFinite);
+  return vals.length ? vals[vals.length-1] : null;
+}
+
 async function generatePowerPoint(){
  let btn=document.getElementById('pptBtn');
  try{
