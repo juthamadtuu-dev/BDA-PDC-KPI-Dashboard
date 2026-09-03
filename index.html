@@ -811,25 +811,6 @@ if(!dataAsOf){
   dataAsOf=String(_n.getDate()).padStart(2,'0')+'-'+['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][_n.getMonth()]+'-'+_n.getFullYear();
 }
 s.addText('Data as of: '+dataAsOf,{x:.65,y:4.0,w:5.15,h:.34,fontFace:'Tahoma',fontSize:14,color:'DCEBFA',align:'left',margin:0});
-// Right-side BPM visual in matching blue tone (vector, no external image dependency)
-const bpmCx=9.75,bpmCy=3.45;
-const bpmItems=[
-  ['Simplify\nOperations',9.75,1.15,'2F80ED'],
-  ['Lower\nCosts',11.25,1.95,'6FAFEF'],
-  ['Improve\nQuality',11.55,3.55,'8EC5F4'],
-  ['Enhance\nProductivity',10.85,5.05,'5A9FE3'],
-  ['Standardize\nworkflows',8.65,5.05,'3E83C6'],
-  ['Delivery Smart\nServices',7.95,3.55,'3475B7'],
-  ['Services\nIntegration',8.25,1.95,'255F9A']
-];
-bpmItems.forEach(([txt,x,y,c])=>{
-  s.addShape(pptx.ShapeType.ellipse,{x:x-.72,y:y-.48,w:1.44,h:.96,fill:{color:c,transparency:4},line:{color:'A9D2FF',pt:1}});
-  s.addText(txt,{x:x-.62,y:y-.18,w:1.24,h:.40,fontFace:'Tahoma',fontSize:8.2,bold:true,color:white,align:'center',valign:'mid',margin:0,fit:'shrink'});
-});
-s.addShape(pptx.ShapeType.ellipse,{x:bpmCx-1.30,y:bpmCy-1.05,w:2.60,h:2.10,fill:{color:'F4F9FF'},line:{color:'A9D2FF',pt:2}});
-s.addText('BUSINESS\nPROCESS\nMANAGEMENT',{x:bpmCx-1.03,y:bpmCy-.52,w:2.06,h:1.05,fontFace:'Tahoma',fontSize:14,bold:true,color:navy,align:'center',valign:'mid',margin:0,fit:'shrink'});
-s.addText('BPM',{x:8.55,y:6.15,w:2.4,h:.34,fontFace:'Tahoma',fontSize:12,bold:true,color:'A9D2FF',align:'center',margin:0});
-
  // Overall first
  let pack=pptSeriesFor('ALL'),people=allPeople();addSummary('ALL',pack.series,people);addTrend('ALL',pack.series);addDetail('ALL',pack.series);
  // Then each unit
