@@ -408,8 +408,8 @@ function loadKeyDataDeleted(){try{return JSON.parse(localStorage.getItem(keyData
 function initKeyDataFilters(){
  let keepMonth=kdMonth.value||'ALL',keepUnit=kdUnit.value||'ALL',keepEmployee=kdEmployee.value||'ALL',keepKpi=kdKpi.value||'ALL';
  if(!kdMonth.options.length)kdMonth.innerHTML='<option value="ALL">ทุกเดือน</option>'+months.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');
- let units=unitDefs();
- kdUnit.innerHTML='<option value="ALL">ทุกหน่วยงาน</option>'+units.map(u=>'<option value="'+esc(u.display)+'">'+esc(u.display)+'</option>').join('');
+ let units=historyUnits();
+ kdUnit.innerHTML='<option value="ALL">ทุกหน่วยงาน</option>'+units.map(u=>'<option value="'+esc(u)+'">'+esc(unitCfg(u).display)+'</option>').join('');
  if([...kdUnit.options].some(o=>o.value===keepUnit))kdUnit.value=keepUnit; else kdUnit.value='ALL';
  let selectedUnit=kdUnit.value||'ALL';
  let people=allPeople().filter(x=>selectedUnit==='ALL'||effectiveUnit(x)===selectedUnit).slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));
