@@ -346,14 +346,13 @@ const KPI_DEFAULT_META=[{indicator:'%ข้อมูลบันทึกถู�
 function kpiDefs(){let cfg=loadSetup(),base=BASE.kpis.map((name,i)=>{let c=cfg.kpis?.['base_'+i]||{},m=KPI_DEFAULT_META[i]||{};return {key:'base_'+i,original:name,display:c.display||name,indicator:c.indicator??m.indicator??'',weight:c.weight??m.weight??0,unit:c.unit||'ALL',order:Number(c.order)||i+1,baseIndex:i,custom:false}}),custom=(cfg.customKpis||[]).map((x,i)=>({key:x.key||('custom_'+i),original:'',display:x.display||'',indicator:x.indicator||'',weight:Number(x.weight)||0,unit:x.unit||'ALL',order:Number(x.order)||999,baseIndex:null,custom:true}));return [...base,...custom].filter(x=>x.display&&!(cfg.deletedKpis||[]).includes(x.key)).sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))}
 function kpiDefsForUnit(unit){
  let defs=kpiDefs(), applicable=(unit==='ALL'?defs:defs.filter(k=>!k.unit||k.unit==='ALL'||k.unit===unit)), groups=new Map();
- applicable.forEach(k=>{let n=String(k.display||k.original||'').trim().toLowerCase();if(!groups.has(n))groups.set(n,[]);groups.get(n).push(k)});
+ const norm=v=>String(v||'').trim().toLowerCase();
+ applicable.forEach(k=>{let n=norm(k.display||k.original);if(!groups.has(n))groups.set(n,[]);groups.get(n).push(k)});
  let out=[];
- groups.forEach(g=>{
-   // IMPORTANT: the base KPI may belong to another unit and therefore may not be
-   // inside `applicable`. Find the same-name base KPI from ALL definitions so a
-   // unit-specific duplicate can still inherit the historical base_0..base_4 data.
-   let groupName=String(g[0]?.display||g[0]?.original||'').trim().toLowerCase();
-   let base=g.find(k=>k.baseIndex!=null) || defs.find(k=>k.baseIndex!=null && [k.display,k.original].filter(Boolean).some(n=>String(n).trim().toLowerCase()===groupName));
+ groups.forEach((g,n)=>{
+   // IMPORTANT: base KPI may belong to another unit and therefore be absent from `applicable`.
+   // Resolve it from ALL definitions by the same KPI name so historical base_0..base_4 data remains linked.
+   let base=defs.find(k=>k.baseIndex!=null&&(norm(k.display)===n||norm(k.original)===n));
    let exact=(unit!=='ALL'?g.find(k=>k.unit===unit):null), chosen=exact||base||g[0];
    let logicalKeys=[...new Set([...g.map(k=>k.key),...(base?[base.key]:[])])];
    out.push({...chosen,baseIndex:base?.baseIndex??chosen.baseIndex,original:base?.original||chosen.original,_logicalKeys:logicalKeys});
@@ -361,43 +360,7 @@ function kpiDefsForUnit(unit){
  return out.sort((a,b)=>a.order-b.order||a.display.localeCompare(b.display,'th'))
 }
 function kpiUnitOptions(selected){let opts='<option value="ALL"'+((selected||'ALL')==='ALL'?' selected':'')+'>ทุกหน่วยงาน</option>';return opts+historyUnits().map(u=>'<option value="'+esc(u)+'"'+(u===selected?' selected':'')+'>'+esc(unitCfg(u).display)+'</option>').join('')}
-function logicalKpiNames(k){
- let names=new Set([k?.display,k?.original].filter(Boolean).map(x=>String(x).trim().toLowerCase()));
- if(k?.baseIndex!=null){let b=kpiDefs().find(d=>d.baseIndex===k.baseIndex);if(b){names.add(String(b.display||'').trim().toLowerCase());names.add(String(b.original||'').trim().toLowerCase())}}
- // A unit-specific KPI with the same display name as a base KPI is one logical KPI.
- let b2=kpiDefs().find(d=>d.baseIndex!=null&&names.has(String(d.display||d.original||'').trim().toLowerCase()));
- if(b2){names.add(String(b2.display||'').trim().toLowerCase());names.add(String(b2.original||'').trim().toLowerCase())}
- return {names,base:b2||null}
-}
-function logicalKpiKeys(k){
- let x=logicalKpiNames(k),keys=new Set([k?.key,...(k?._logicalKeys||[])].filter(Boolean));
- if(k?.baseIndex!=null)keys.add('base_'+k.baseIndex);
- if(x.base)keys.add(x.base.key);
- return {keys,names:x.names,base:x.base}
-}
-function logicalKpiCell(k,month,id){
- id=String(id);let lk=logicalKpiKeys(k),rows=keyDataRows();
- function matches(r){return String(r.id)===id&&((r.kpiKey&&lk.keys.has(r.kpiKey))||lk.names.has(String(r.kpi||'').trim().toLowerCase()))}
- if(month==='TTL'){
-   let vals=months.map(m=>logicalKpiCell(k,m,id)).filter(c=>c&&Number.isFinite(Number(c.pct)));
-   if(!vals.length)return {ttl:null,actual:null,pct:null};
-   let ts=vals.map(c=>Number(c.ttl)).filter(Number.isFinite),as=vals.map(c=>Number(c.actual)).filter(Number.isFinite),ps=vals.map(c=>Number(c.pct)).filter(Number.isFinite);
-   return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null};
- }
- let cand=rows.filter(r=>r.month===month&&matches(r));
- // Prefer the exact unit-specific KPI key, then the base key, then legacy/same-name data.
- let exact=cand.filter(r=>r.kpiKey===k.key).slice(-1)[0];
- let baseKey=(k.baseIndex!=null?'base_'+k.baseIndex:lk.base?.key);
- let base=baseKey?cand.filter(r=>r.kpiKey===baseKey).slice(-1)[0]:null;
- let r=exact||base||cand.slice(-1)[0];
- if(r&&Number.isFinite(Number(r.pct)))return {ttl:r.ttl,actual:r.actual,pct:Number(r.pct)};
- // Final fallback to embedded 2026 BASE data, so historical scores can never disappear after KPI is split by unit.
- let bi=k.baseIndex;
- if(bi==null&&lk.base)bi=lk.base.baseIndex;
- if(bi!=null&&currentYear===2026){let br=(BASE.data?.[month]||[]).find(z=>String(z.id)===id),c=br?.kpis?.[bi];if(c&&Number.isFinite(Number(c.pct)))return {ttl:c.ttl,actual:c.actual,pct:Number(c.pct)}}
- return {ttl:null,actual:null,pct:null}
-}
-function kpiCell(row,k,month,id){return logicalKpiCell(k,month,id)}
+function kpiCell(row,k,month,id){if(k.baseIndex!=null){if(month!=='TTL'){let keys=new Set([k.key,'base_'+k.baseIndex,...(k._logicalKeys||[])]);let e=loadEdits().slice().reverse().find(x=>x.month===month&&String(x.id)===String(id)&&((x.kpiKey&&keys.has(x.kpiKey))||(!x.kpiKey&&(x.kpi===k.display||x.kpi===k.original))));if(e)return {ttl:e.target,actual:e.actual,pct:e.pct};}return row?.kpis?.[k.baseIndex]||{ttl:null,actual:null,pct:null};}if(month==='TTL'){let es=loadEdits().filter(x=>x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display))&&x.pct!=null);if(!es.length)return {ttl:null,actual:null,pct:null};let ts=es.map(x=>+x.target).filter(Number.isFinite),as=es.map(x=>+x.actual).filter(Number.isFinite),ps=es.map(x=>+x.pct).filter(Number.isFinite);return {ttl:ts.length?ts.reduce((a,b)=>a+b,0):null,actual:as.length?as.reduce((a,b)=>a+b,0):null,pct:ps.length?ps.reduce((a,b)=>a+b,0)/ps.length:null}}let e=loadEdits().slice().reverse().find(x=>x.month===month&&x.id===id&&(x.kpiKey===k.key||(!x.kpiKey&&x.kpi===k.display)));return e?{ttl:e.target,actual:e.actual,pct:e.pct}:{ttl:null,actual:null,pct:null}}
 function renderKpiSetup(){let defs=kpiDefs();kpiSetup.innerHTML='<tr><th>Order</th><th>Original KPI</th><th>KPI Name</th><th>ตัวชี้วัด (KPI)</th><th>ความสำคัญ (%)</th><th>หน่วยงาน</th><th>Action</th></tr>'+defs.map((r,i)=>'<tr class="kpiRow" data-key="'+esc(r.key)+'" data-custom="'+(r.custom?'1':'0')+'"><td><input class="skOrder" type="number" min="1" value="'+r.order+'" style="width:80px"></td><td class="name">'+esc(r.original||'New')+'</td><td><input class="skName" value="'+esc(r.display)+'" style="width:95%"></td><td><input class="skIndicator" value="'+esc(r.indicator||'')+'" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="'+(r.weight??0)+'" style="width:110px"> %</td><td><select class="skUnit" style="min-width:230px">'+kpiUnitOptions(r.unit||'ALL')+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">🗑 Delete</button></td></tr>').join('');bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function addKpiRow(){let n=document.querySelectorAll('.kpiRow').length+1,tbody=kpiSetup.tBodies[0]||kpiSetup,tr=document.createElement('tr');tr.className='kpiRow';tr.dataset.key='custom_'+Date.now();tr.dataset.custom='1';tr.innerHTML='<td><input class="skOrder" type="number" min="1" value="'+n+'" style="width:80px"></td><td class="name">New</td><td><input class="skName" placeholder="ชื่อ KPI" style="width:95%"></td><td><input class="skIndicator" placeholder="ตัวชี้วัด (KPI)" style="width:95%;min-width:260px"></td><td><input class="skWeight" type="number" min="0" max="100" step="0.1" value="0" style="width:110px"> %</td><td><select class="skUnit" style="min-width:230px">'+kpiUnitOptions('ALL')+'</select></td><td><button type="button" onclick="deleteSetupRow(this,\'kpi\')" style="background:#d92d20;padding:7px 10px">✕</button></td>';tbody.appendChild(tr);bindAutoSort(kpiSetup,'.kpiRow','.skOrder')}
 function refreshKpiControls(){let cur=iKpi.value,unit='ALL';if(iEmployee.value&&iEmployee.value!=='ALL'){let p=allPeople().find(x=>String(x.id)===String(iEmployee.value));if(p)unit=effectiveUnit(p)}let defs=kpiDefsForUnit(unit);iKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+defs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');if([...iKpi.options].some(o=>o.value===cur))iKpi.value=cur;else iKpi.value='ALL'}
