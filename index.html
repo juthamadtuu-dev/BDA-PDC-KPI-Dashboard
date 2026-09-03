@@ -737,7 +737,10 @@ function pptSeriesFor(unit='ALL'){
  const rows=keyDataRows();
  const allDefs=kpiDefs();
  const norm=v=>String(v||'').trim().toLowerCase();
- const defs=kpiDefsForUnit(unit);
+ const unitExactDefs = unit==='ALL' ? [] : allDefs.filter(k=>String(k.unit||'ALL')===String(unit));
+ // PPT unit slides must follow KPI Setup for that unit. If the unit has its own KPIs, use those only.
+ // Fall back to the normal logical KPI set only when no KPI is explicitly assigned to the unit.
+ const defs = unit==='ALL' ? kpiDefsForUnit('ALL') : (unitExactDefs.length ? unitExactDefs : kpiDefsForUnit(unit));
  const series=defs.map(k=>{
    const names=new Set([k.display,k.original].filter(Boolean).map(norm));
    const sameNameBase=allDefs.find(d=>d.baseIndex!=null&&(names.has(norm(d.display))||names.has(norm(d.original))));
@@ -810,7 +813,7 @@ s.addText('Data as of: '+dataAsOf,{x:.8,y:3.85,w:11.7,h:.34,fontFace:'Tahoma',fo
  // Overall first
  let pack=pptSeriesFor('ALL'),people=allPeople();addSummary('ALL',pack.series,people);addTrend('ALL',pack.series);addDetail('ALL',pack.series);
  // Then each unit
- const units=[...new Set(allPeople().map(x=>effectiveUnit(x)).filter(Boolean))].sort((a,b)=>String(a).localeCompare(String(b),'th'));
+ const units=[...new Set([...historyUnits(),...allPeople().map(x=>effectiveUnit(x)).filter(Boolean)])].sort((a,b)=>String(a).localeCompare(String(b),'th'));
  units.forEach(unit=>{let p=pptSeriesFor(unit),pp=allPeople().filter(x=>effectiveUnit(x)===unit);addSummary(unit,p.series,pp);addTrend(unit,p.series);addDetail(unit,p.series);});
  await pptx.writeFile({fileName:'L5_BPM_KPIs_Presentation_Overall_and_Units_'+currentYear+'.pptx'});
  }catch(e){console.error(e);alert('Generate PowerPoint ไม่สำเร็จ: '+e.message)}finally{btn.disabled=false;btn.textContent='📊 PPT Present'}}
