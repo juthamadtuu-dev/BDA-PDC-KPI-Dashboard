@@ -140,9 +140,9 @@ tbody tr:hover td:not(.good):not(.warn):not(.bad){background:#eaf4ff}
 <div class="panel"><h3 id="titleKeyData">🔑 Key Data</h3>
 <div class="keyfilters">
 <label>Month<select id="kdMonth"></select></label>
+<label>หน่วยงาน<select id="kdUnit"></select></label>
 <label>Employee<select id="kdEmployee"></select></label>
 <label>KPI<select id="kdKpi"></select></label>
-<label>Search<input id="kdSearch" placeholder="ค้นหา ID / ชื่อ / หน่วยงาน"></label>
 </div>
 <div class="keysummary" id="kdSummary"></div>
 <div class="scroll"><table id="keyDataTable"></table></div>
@@ -406,19 +406,27 @@ function keyDataDeleteKey(r){
 function keyDataDeletedStorageKey(){return 'bdaPdcKeyDataDeleted_'+currentYear}
 function loadKeyDataDeleted(){try{return JSON.parse(localStorage.getItem(keyDataDeletedStorageKey())||'[]')}catch(e){return[]}}
 function initKeyDataFilters(){
- let keepMonth=kdMonth.value||'ALL',keepEmployee=kdEmployee.value||'ALL',keepKpi=kdKpi.value||'ALL';
+ let keepMonth=kdMonth.value||'ALL',keepUnit=kdUnit.value||'ALL',keepEmployee=kdEmployee.value||'ALL',keepKpi=kdKpi.value||'ALL';
  if(!kdMonth.options.length)kdMonth.innerHTML='<option value="ALL">ทุกเดือน</option>'+months.map(m=>'<option value="'+esc(m)+'">'+esc(m)+'</option>').join('');
- let people=allPeople().slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));
+ let units=unitDefs();
+ kdUnit.innerHTML='<option value="ALL">ทุกหน่วยงาน</option>'+units.map(u=>'<option value="'+esc(u.display)+'">'+esc(u.display)+'</option>').join('');
+ if([...kdUnit.options].some(o=>o.value===keepUnit))kdUnit.value=keepUnit; else kdUnit.value='ALL';
+ let selectedUnit=kdUnit.value||'ALL';
+ let people=allPeople().filter(x=>selectedUnit==='ALL'||effectiveUnit(x)===selectedUnit).slice().sort((a,b)=>empCfg(a).order-empCfg(b).order||empCfg(a).display.localeCompare(empCfg(b).display,'th'));
  kdEmployee.innerHTML='<option value="ALL">ทุกคน</option>'+people.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.id+' - '+empCfg(x).display)+'</option>').join('');
- kdKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kpiDefs().map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');
+ let kdDefs=kpiDefsForUnit(selectedUnit);
+ kdKpi.innerHTML='<option value="ALL">ทุก KPI</option>'+kdDefs.map(k=>'<option value="'+esc(k.key)+'">'+esc(k.display)+'</option>').join('');
  if([...kdMonth.options].some(o=>o.value===keepMonth))kdMonth.value=keepMonth;
- if([...kdEmployee.options].some(o=>o.value===keepEmployee))kdEmployee.value=keepEmployee;
- if([...kdKpi.options].some(o=>o.value===keepKpi))kdKpi.value=keepKpi;
+ if([...kdEmployee.options].some(o=>o.value===keepEmployee))kdEmployee.value=keepEmployee; else kdEmployee.value='ALL';
+ if([...kdKpi.options].some(o=>o.value===keepKpi))kdKpi.value=keepKpi; else kdKpi.value='ALL';
 }
 function renderKeyData(){
  initKeyDataFilters();
- let m=kdMonth.value||'ALL',id=kdEmployee.value||'ALL',k=kdKpi.value||'ALL',q=(kdSearch.value||'').trim().toLowerCase();
- let rows=keyDataRows().filter(r=>{let def=kpiDefs().find(d=>d.original===r.kpi||d.display===r.kpi||d.key===r.kpiKey);return (m==='ALL'||r.month===m)&&(id==='ALL'||r.id===id)&&(k==='ALL'||def?.key===k)&&(!q||[r.id,r.name,r.unit,r.evaluator,r.kpi,r.remark].join(' ').toLowerCase().includes(q))});
+ let m=kdMonth.value||'ALL',unit=kdUnit.value||'ALL',id=kdEmployee.value||'ALL',k=kdKpi.value||'ALL';
+ let selectedDef=k==='ALL'?null:kpiDefsForUnit(unit).find(d=>d.key===k);
+ let logicalKeys=new Set(selectedDef?[selectedDef.key,...(selectedDef._logicalKeys||[]),'base_'+selectedDef.baseIndex].filter(Boolean):[]);
+ let logicalNames=new Set(selectedDef?[selectedDef.display,selectedDef.original].filter(Boolean).map(x=>String(x).trim().toLowerCase()):[]);
+ let rows=keyDataRows().filter(r=>{let def=kpiDefs().find(d=>d.original===r.kpi||d.display===r.kpi||d.key===r.kpiKey);let kOk=k==='ALL'||logicalKeys.has(r.kpiKey)||logicalKeys.has(def?.key)||logicalNames.has(String(r.kpi||'').trim().toLowerCase());return (m==='ALL'||r.month===m)&&(unit==='ALL'||String(r.unit||'')===String(unit))&&(id==='ALL'||r.id===id)&&kOk});
  rows.sort((a,b)=>months.indexOf(a.month)-months.indexOf(b.month)||a.id.localeCompare(b.id)||a.kpi.localeCompare(b.kpi));
  kdSummary.textContent=''; kdSummary.style.display='none';
  window.__keyDataVisibleRows=rows;
@@ -692,7 +700,7 @@ applyMenuSetup();
   (open[first]||showMatrix)();
 })();
 refreshMatrixUnits();refreshHistoryUnits();fillHistoryEvaluators();fillHistoryEmployees();refreshEmployeeControls();hUnit.addEventListener('change',historyUnitChanged);hEmployee.addEventListener('change',renderHistory);hEvaluator.addEventListener('change',historyEvaluatorChanged);employeeSelect.addEventListener('change',renderEmployee);
-[kdMonth,kdEmployee,kdKpi].forEach(x=>x.addEventListener('change',renderKeyData));kdSearch.addEventListener('input',renderKeyData);
+[kdMonth,kdUnit,kdEmployee,kdKpi].forEach(x=>x.addEventListener('change',renderKeyData));
 [iTarget,iActual,iCalc].forEach(x=>x.addEventListener('input',calcPct)); month.addEventListener('change',render);
 render();
 
